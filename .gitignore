@@ -4,10 +4,6 @@
 # nạp lại từ seed.
 app/data/
 
-# Ảnh do Admin tải lên lúc chạy. Chúng gắn với dữ liệu trong DB (mà DB thì không
-# đi theo git), nên máy mới sẽ tự sinh lại khi bạn tải ảnh mới.
-app/public/assets/uploads/
-
 # macOS
 .DS_Store
 .AppleDouble
