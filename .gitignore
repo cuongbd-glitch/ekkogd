@@ -1,0 +1,26 @@
+# Cơ sở dữ liệu chạy máy nào máy đó tự tạo. KHÔNG đưa lên git và cũng không nên
+# để Google Drive đồng bộ: SQLite ở chế độ WAL bị đồng bộ giữa hai máy là cách
+# nhanh nhất để hỏng dữ liệu. Máy mới chỉ cần `npm start`, nội dung khoá học tự
+# nạp lại từ seed.
+app/data/
+
+# Ảnh do Admin tải lên lúc chạy. Chúng gắn với dữ liệu trong DB (mà DB thì không
+# đi theo git), nên máy mới sẽ tự sinh lại khi bạn tải ảnh mới.
+app/public/assets/uploads/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Rác của trình soạn thảo
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/settings.json
+
+# Node (dự án không có dependency, nhưng phòng khi thêm về sau)
+node_modules/
+npm-debug.log*

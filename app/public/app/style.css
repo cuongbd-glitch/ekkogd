@@ -1,0 +1,1130 @@
+/*
+  Ekko - Giáo dục tài chính, member app.
+  Mobile first. Mọi màu, bo góc và khoảng cách đều lấy từ token của Ekko Design
+  System; không còn giá trị màu tự đặt trong file này. Lớp phủ mờ và bóng đổ pha
+  từ token bằng color-mix() thay vì viết rgba() tay.
+*/
+
+:root {
+  /* Dải trời dùng chung cho mọi màn hình có artwork tràn viền (đảo, bản đồ học
+     tập, mục tiêu). Toàn bộ lấy từ token của Ekko Design System — bảng màu Ekko
+     không có xanh trời nhạt, nên phần dưới dùng họ jade. */
+  --sky-gradient: linear-gradient(180deg,
+    var(--payday-blue-100) 0%,
+    var(--payday-blue-50) 34%,
+    var(--jade-100) 72%,
+    var(--jade-50) 100%);
+  --ink: var(--text-primary);
+  --shell-max: 480px;
+  --gutter: var(--spacing-20);   /* lề ngang của mọi màn hình */
+
+  /* Chrome của khung iPhone. Bằng 0 khi chạy toàn màn hình trên máy thật,
+     lúc đó thiết bị tự cung cấp status bar và home indicator. */
+  --status-h: 0px;
+  --home-h: 0px;
+  --quick-h: 54px;        /* chiều cao hàng chrome dưới đáy */
+  --hud-height: 68px;
+  --font: 'Bricolage Grotesque', system-ui, 'Helvetica Neue', Arial, sans-serif;
+  --shadow-card: 0 2px 8px color-mix(in srgb, var(--grey-900) 6%, transparent), 0 12px 28px color-mix(in srgb, var(--grey-900) 7%, transparent);
+  --shadow-float: 0 10px 24px color-mix(in srgb, var(--ekko-midnight) 18%, transparent);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg-secondary);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+body { min-height: 100dvh; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; }
+a { color: var(--text-highlight); }
+img { max-width: 100%; }
+
+.app {
+  max-width: var(--shell-max);
+  margin-inline: auto;
+  min-height: 100%;
+  padding-top: var(--status-h);
+  position: relative;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.boot {
+  min-height: 60vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--spacing-16);
+  color: var(--text-secondary);
+}
+.boot img { animation: bob 2.4s ease-in-out infinite; }
+
+
+/* -------------------------------------------------------------- device
+   Khung iPhone lấy từ "iphone mockup.fig".
+   Ảnh khung: 450 x 920 pt, vùng màn hình trong suốt 402 x 874 pt tại (24, 23).
+   Mọi kích thước bên trong tính theo phần trăm của khung nên khung co lại vừa
+   cửa sổ mà không cần transform (chữ vẫn nét).
+   `.device__screen` có `transform` để mọi phần tử `position: fixed` bên trong
+   (nút bot, trình phát bài học, bottom sheet, toast) neo theo màn hình
+   điện thoại thay vì theo viewport. */
+.device {
+  --dev-h: 100dvh;
+  width: 100%;
+  height: 100dvh;
+  position: relative;
+  margin-inline: auto;
+}
+
+/* Mốc neo cho `position: fixed`, và chỉ có vậy: khung này không cuộn. */
+.device__screen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg-primary);
+  transform: translateZ(0);
+}
+
+/* Phần thực sự cuộn. Tách riêng khỏi mốc neo ở trên, nếu không thanh trạng
+   thái, nút Ekko bot và home indicator sẽ trôi theo nội dung. */
+.device__scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;      /* thanh cuộn của trình duyệt phá vỡ ảo giác thiết bị */
+}
+.device__scroll::-webkit-scrollbar { width: 0; height: 0; }
+
+.device__chassis { display: none; }
+.statusbar, .homebar { display: none; }
+
+@media (min-width: 768px) and (min-height: 680px) {
+  body {
+    display: grid;
+    place-items: center;
+    height: 100dvh;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 90% at 50% 0%, var(--payday-blue-50) 0%, transparent 62%),
+      var(--bg-secondary);
+  }
+
+  .device {
+    --dev-h: min(920px, calc(100dvh - 40px));
+    height: var(--dev-h);
+    width: calc(var(--dev-h) * 450 / 920);
+    filter: drop-shadow(0 28px 60px color-mix(in srgb, var(--ekko-midnight) 28%, transparent));
+  }
+
+  .device__screen {
+    inset: 2.5% 5.3333% 2.5% 5.3333%;   /* 23/920 và 24/450 */
+    /* Bo góc nhỏ hơn khẩu độ thật một chút: góc app luôn chui xuống dưới phần
+       viền đục của ảnh khung, nên không bao giờ hở một vệt nền ở bốn góc. */
+    border-radius: calc(var(--dev-h) * 60 / 920);
+    background: var(--base-black);
+  }
+
+  .device__chassis {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 300;
+  }
+
+  /* Đặt trên chính khung màn hình để mọi lớp phủ bên trong (sheet, trình
+     phát bài học, toast) đều thừa hưởng. */
+  .device__screen {
+    --status-h: calc(var(--dev-h) * 54 / 920);
+    --home-h: calc(var(--dev-h) * 22 / 920);
+  }
+
+  .statusbar,
+  .homebar { display: flex; }
+}
+
+/* Đồng hồ và các biểu tượng sóng: nổi trên mọi thứ, giống iOS. Lớp phủ tối
+   (bottom sheet, màn chúc mừng) sẽ làm mờ chúng đi qua body.is-dimmed. */
+.statusbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: calc(var(--dev-h) * 54 / 920);
+  padding: 0 calc(var(--dev-h) * 30 / 920) 0 calc(var(--dev-h) * 34 / 920);
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-primary) 86%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 320;
+  pointer-events: none;
+  transition: opacity .18s ease;
+}
+.statusbar__time { font-size: 15px; font-weight: 600; letter-spacing: .01em; }
+.statusbar__icons { display: flex; align-items: center; gap: 6px; }
+
+.homebar {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(var(--dev-h) * 8 / 920);
+  height: calc(var(--dev-h) * 5 / 920);
+  justify-content: center;
+  z-index: 320;
+  pointer-events: none;
+  transition: opacity .18s ease;
+}
+.homebar::after {
+  content: '';
+  width: 36%;
+  border-radius: var(--radius-full);
+  background: var(--grey-900);
+  opacity: .9;
+}
+
+/* Bottom sheet chỉ làm tối phần trên, nên giấu đồng hồ mà vẫn giữ home
+   indicator. Màn chúc mừng phủ kín nên giấu cả hai. */
+body.is-sheet .statusbar,
+body.is-modal .statusbar,
+body.is-modal .homebar { opacity: 0; }
+
+/* ---------------------------------------------------------------- HUD */
+.hud {
+  position: sticky;
+  /* Ghim ngay dưới thanh trạng thái. Nếu để top: 0 thì khi cuộn, HUD chui
+     xuống dưới Dynamic Island và bị che mất. */
+  top: var(--status-h);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-10);
+  padding: max(var(--spacing-12), env(safe-area-inset-top)) var(--gutter) var(--spacing-12);
+  background: color-mix(in srgb, var(--bg-primary) 86%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.hud__back {
+  width: 32px; height: 32px; flex: none;
+  margin-left: -4px;
+  border-radius: var(--radius-full);
+  display: grid; place-items: center;
+  background: var(--bg-secondary); color: var(--text-primary);
+  font-size: 17px; line-height: 1;
+}
+.hud__back:active { transform: scale(.92); }
+
+.hud__level { display: flex; align-items: center; gap: var(--spacing-8); min-width: 0; flex: 1; }
+.hud__avatar {
+  width: 40px; height: 40px; border-radius: var(--radius-full);
+  background: var(--bg-brand-50); display: grid; place-items: center; flex: none;
+  overflow: hidden;
+}
+.hud__avatar img { width: 34px; height: 34px; object-fit: contain; }
+.hud__meta { min-width: 0; flex: 1; text-align: left; }
+.hud__name {
+  display: block;
+  font-size: 13px; font-weight: 600; line-height: 16px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hud__xpbar {
+  display: block;
+  margin-top: 4px; height: 6px; border-radius: var(--radius-full);
+  background: var(--bg-grey-200); overflow: hidden;
+}
+.hud__xpfill {
+  display: block;
+  height: 100%; border-radius: inherit; background: var(--bg-brand-500);
+  transition: width .5s cubic-bezier(.16, 1, .3, 1);
+}
+.hud__xptext { display: block; font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 30px; padding: 0 var(--spacing-10);
+  border-radius: var(--radius-full);
+  font-size: 13px; font-weight: 600;
+  background: var(--bg-secondary); color: var(--text-primary);
+  border: 1px solid var(--border-secondary);
+  flex: none;
+}
+.pill--streak { background: var(--bg-warning-50); border-color: var(--border-warning); color: var(--text-warning); }
+.pill--frozen { background: var(--jade-50); border-color: var(--jade-200); color: var(--jade-700); }
+.pill--done { background: var(--bg-success-50); border-color: var(--border-success); color: var(--text-success); }
+
+/* -------------------------------------------------------------- screens */
+.screen { flex: 1; display: flex; flex-direction: column; }
+
+/* Không còn thanh tab làm "sàn", nên nội dung cuộn được làm mờ dần ở đáy để
+   nút hành động và Ekko bot không trôi lơ lửng trên chữ. */
+.screen::after {
+  content: '';
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: calc(var(--spacing-96) + var(--home-h));
+  background: linear-gradient(to top, var(--bg-primary) 42%, transparent);
+  pointer-events: none;
+  z-index: 15;
+}
+.screen__body { flex: 1; padding: var(--gutter) var(--gutter) calc(var(--spacing-128) + var(--home-h)); }
+/* Màn hình có artwork tràn viền (bầu trời, bản đồ) thì không có lề trên: chừa lề
+   ở đây sẽ để lộ một vạch trắng giữa HUD và bầu trời. */
+.screen__body--flush { padding: 0 0 calc(var(--spacing-128) + var(--home-h)); }
+.screen__body--map { padding-bottom: 0; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 25;
+  display: flex; align-items: center; gap: var(--spacing-12);
+  padding: max(var(--spacing-12), env(safe-area-inset-top)) var(--gutter) var(--spacing-12);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.topbar h1 { font-size: 18px; line-height: 24px; margin: 0; font-weight: 600; flex: 1; }
+.iconbtn {
+  width: 36px; height: 36px; border-radius: var(--radius-12);
+  display: grid; place-items: center; background: var(--bg-secondary);
+  font-size: 17px; flex: none;
+}
+.iconbtn:active { transform: scale(.94); }
+
+/* ---------------------------------------------------------- world stage
+   Bầu trời phủ trọn một trang: cao bằng vùng nhìn thấy của màn hình trừ thanh
+   trạng thái và HUD. Cụm đảo giữ tỉ lệ vuông và được căn giữa theo chiều dọc,
+   nên chiều cao thừa thành trời chứ không kéo các đảo xa nhau. */
+/* Vùng trời cao đúng bằng cụm đảo, không kéo cho đầy màn hình: kéo đầy thì trên
+   máy cao sẽ hở một dải trời trống và đẩy các thẻ bên dưới xuống quá sâu. */
+.world {
+  position: relative;
+  display: grid;
+  background: var(--sky-gradient);
+  padding-block: var(--spacing-16) var(--spacing-24);
+}
+.world::before,
+.world::after {
+  content: '';
+  position: absolute; inset-inline: 0; height: 130px;
+  background:
+    radial-gradient(60px 26px at 18% 40%, color-mix(in srgb, var(--base-white) 90%, transparent), transparent 70%),
+    radial-gradient(90px 32px at 62% 60%, color-mix(in srgb, var(--base-white) 78%, transparent), transparent 70%),
+    radial-gradient(52px 22px at 88% 30%, color-mix(in srgb, var(--base-white) 82%, transparent), transparent 70%);
+  pointer-events: none;
+}
+/* Mây tính theo phần trăm chiều cao, nên trời cao bao nhiêu chúng cũng rải đều. */
+.world::before { top: 6%; }
+.world::after { top: 66%; opacity: .6; }
+
+.world__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1.0;
+  margin-top: 0;
+}
+
+.isle { position: absolute; transform: translate(-50%, -50%); text-align: center; }
+.isle__frame { position: relative; aspect-ratio: 1; }
+.isle__art {
+  display: block; width: 100%; height: 100%;
+  object-fit: contain;
+  /* Most island art is cut out, but the first island carries a painted sky.
+     Feathering the outer edge blends that into the CSS sky behind it. */
+  /* #000 ở đây là giá trị kênh mask (đục/trong), không phải màu hiển thị — nên
+     nó không thuộc bảng màu và không thay bằng token. */
+  -webkit-mask-image: radial-gradient(closest-side, #000 84%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 84%, transparent 100%);
+  filter: drop-shadow(0 12px 14px color-mix(in srgb, var(--ekko-midnight) 18%, transparent));
+}
+.isle__label {
+  display: inline-block;
+  margin-top: -10px;
+  padding: 4px var(--spacing-10);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--base-white) 94%, transparent);
+  box-shadow: var(--shadow-float);
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+  position: relative; z-index: 2;
+}
+.isle__badge {
+  position: absolute; top: 6%; right: 2%;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--bg-brand-500); color: var(--text-white);
+  font-size: 11px; font-weight: 600;
+  display: grid; place-items: center;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--ekko-midnight) 30%, transparent);
+}
+.isle__badge--done { background: var(--bg-success-500); }
+
+.isle--center { left: 50%; top: 50%; width: 48%; z-index: 1; }
+.isle--center .isle__art { animation: float-slow 7s ease-in-out infinite; }
+.isle--nw { left: 17%; top: 18%; width: 31%; z-index: 3; }
+.isle--ne { left: 83%; top: 18%; width: 31%; z-index: 3; }
+.isle--sw { left: 16%; top: 83%; width: 31%; z-index: 3; }
+.isle--se { left: 84%; top: 83%; width: 31%; z-index: 3; }
+.isle--nw .isle__art { animation: float-slow 6.2s ease-in-out infinite .4s; }
+.isle--ne .isle__art { animation: float-slow 6.8s ease-in-out infinite .9s; }
+.isle--sw .isle__art { animation: float-slow 7.4s ease-in-out infinite 1.4s; }
+.isle--se .isle__art { animation: float-slow 6.5s ease-in-out infinite 1.9s; }
+
+.isle button { display: block; width: 100%; padding: 0; }
+.isle button:active .isle__art { transform: scale(.95); transition: transform .12s; }
+
+/* ------------------------------------------------------ màn hình nền trời
+   Dùng chung cho bản đồ học tập và Mục tiêu tài chính: tên màn nằm trong một
+   viên thuốc dính ở đỉnh, nền là dải trời nên nội dung không bao giờ hết màu.
+   z-index nhỏ để đường đi của bản đồ vẫn vẽ được phía sau. */
+.skyhead {
+  /* Cố tình chỉ dính tới sát HUD rồi chui xuống dưới HUD: ghim hẳn ở dưới HUD thì
+     viên thuốc sẽ trôi lên trên nội dung và che tên thẻ đang cuộn qua. */
+  position: sticky; top: 0; z-index: 12;
+  display: flex; justify-content: center;
+  padding: var(--spacing-12) var(--gutter);
+  pointer-events: none;
+}
+.skyhead__pill {
+  padding: var(--spacing-8) var(--spacing-16);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--base-white) 94%, transparent);
+  box-shadow: var(--shadow-float);
+  font-size: 14px; font-weight: 600;
+}
+
+.mapboard {
+  position: relative;
+  /* Dải trời lấy hẳn token của design system thay cho hex tự đặt. Bảng màu Ekko
+     không có xanh trời nhạt, nên hai chặng dưới dùng họ jade — gần nhất về sắc
+     độ, chỉ lệch một chút sang xanh ngọc. */
+  background: var(--sky-gradient);
+  padding-bottom: calc(var(--spacing-128) + var(--home-h));
+  min-height: 100%;
+}
+
+.trail {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.trail path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ekko-midnight) 28%, transparent);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 2 16;
+}
+
+/* Chặng đầu ở dưới cùng, nên đảo chiều khi hiển thị. */
+.maptrack { display: flex; flex-direction: column-reverse; position: relative; z-index: 1; }
+
+/* --- một chặng trên đường --- */
+.mapnode {
+  display: grid;
+  gap: var(--spacing-8);
+  padding: var(--spacing-6) var(--gutter);
+  justify-items: center;
+}
+.mapnode--left { justify-items: start; }
+.mapnode--right { justify-items: end; }
+
+.mapnode__art { position: relative; width: 148px; flex: none; }
+.mapnode__art button { display: block; width: 100%; padding: 0; }
+.mapnode__art img { display: block; width: 100%; filter: drop-shadow(0 10px 12px color-mix(in srgb, var(--ekko-midnight) 18%, transparent)); }
+.mapnode[data-state="locked"] .mapnode__art img { filter: grayscale(.55) brightness(.94); opacity: .8; }
+
+.mapnode__num {
+  position: absolute; top: 2px; left: 2px;
+  width: 30px; height: 30px;
+  border-radius: var(--radius-full);
+  background: var(--ekko-midnight); color: var(--text-white);
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 600;
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--ekko-midnight) 35%, transparent);
+}
+.mapnode[data-state="locked"] .mapnode__num { background: var(--grey-500); }
+.mapnode[data-state="done"] .mapnode__num { background: var(--bg-success-600); }
+
+.mapnode__pig {
+  position: absolute; top: -22px; right: -14px;
+  width: 54px !important;
+  animation: bob-simple 3.2s ease-in-out infinite;
+}
+
+.mapnode__info { display: flex; align-items: center; gap: var(--spacing-10); max-width: 100%; }
+.mapnode--left .mapnode__info { flex-direction: row; }
+.mapnode--right .mapnode__info { flex-direction: row; }
+
+.mapnode__chip {
+  width: 42px; height: 42px; flex: none;
+  border-radius: var(--radius-full);
+  display: grid; place-items: center;
+  font-size: 17px;
+  background: var(--bg-brand-500); color: var(--text-white);
+  box-shadow: var(--shadow-float);
+}
+.mapnode[data-state="locked"] .mapnode__chip { background: var(--bg-grey-200); color: var(--text-tertiary); box-shadow: none; }
+.mapnode[data-state="done"] .mapnode__chip { background: var(--bg-success-500); }
+.mapnode__chip:active { transform: scale(.93); }
+
+.mapnode__title {
+  padding: var(--spacing-8) var(--spacing-14);
+  border-radius: var(--radius-18);
+  background: color-mix(in srgb, var(--base-white) 95%, transparent);
+  box-shadow: var(--shadow-float);
+  font-size: 14px; font-weight: 600; line-height: 20px;
+  text-align: left;
+  max-width: 190px;
+}
+.mapnode[data-state="locked"] .mapnode__title { color: var(--text-tertiary); background: color-mix(in srgb, var(--base-white) 70%, transparent); box-shadow: none; }
+
+.mapnode__meta {
+  padding: 3px var(--spacing-10);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--base-white) 90%, transparent);
+  font-size: 12px; color: var(--text-secondary);
+  justify-self: inherit;
+}
+
+/* --- mốc mô đun, đứng cạnh đường chứ không nằm trên đường --- */
+.mapmodule {
+  display: grid; gap: var(--spacing-6);
+  justify-items: start;
+  padding: var(--spacing-16) var(--gutter) var(--spacing-12);
+}
+.mapmodule__art { position: relative; width: 146px; }
+.mapmodule__art img { display: block; width: 100%; filter: drop-shadow(0 10px 12px color-mix(in srgb, var(--ekko-midnight) 18%, transparent)); }
+.mapmodule__tag {
+  position: absolute; bottom: 34%; left: 58%;
+  padding: 4px var(--spacing-10);
+  border-radius: var(--radius-full);
+  background: var(--ekko-midnight);
+  color: var(--ekko-lime);
+  font-size: 11px; font-weight: 600; letter-spacing: .04em;
+  white-space: nowrap;
+}
+.mapmodule__label {
+  display: flex; align-items: center; gap: var(--spacing-8);
+  max-width: 100%;
+}
+.mapmodule__emoji {
+  width: 40px; height: 40px; flex: none;
+  border-radius: var(--radius-full);
+  background: var(--ekko-midnight);
+  display: grid; place-items: center; font-size: 19px;
+}
+.mapmodule__title {
+  padding: var(--spacing-8) var(--spacing-14);
+  border-radius: var(--radius-18);
+  background: var(--ekko-midnight);
+  color: var(--ekko-lime);
+  font-size: 14px; font-weight: 600; line-height: 20px;
+}
+.mapmodule__summary {
+  padding: var(--spacing-8) var(--spacing-14);
+  border-radius: var(--radius-18);
+  background: color-mix(in srgb, var(--base-white) 95%, transparent);
+  font-size: 12px; color: var(--text-secondary); line-height: 18px;
+  max-width: 280px;
+}
+.mapmodule__locked { font-size: 12px; color: var(--text-secondary); }
+
+/* --- đảo của người chơi, điểm khởi hành ở dưới cùng --- */
+.maphome { display: grid; justify-items: center; padding: 0 var(--gutter) var(--spacing-8); }
+.maphome img { width: 78%; filter: drop-shadow(0 14px 16px color-mix(in srgb, var(--ekko-midnight) 20%, transparent)); }
+
+/* --------------------------------------------------- mục tiêu tài chính
+   Cùng ngôn ngữ với bản đồ học tập: nền trời, thẻ trắng nổi trên nền. Màn hình
+   này tự lo lề nên `--sky` bỏ hết padding của khung. */
+/* Khung ngoài trải hết chiều cao rồi mới nhường cho dải trời, nếu không màn
+   hình ít nội dung sẽ hết màu giữa đường và để lộ nền trắng. */
+.screen__body--sky { padding: 0; display: flex; flex-direction: column; }
+
+.skyboard {
+  flex: 1;
+  padding: 0 var(--gutter) calc(var(--spacing-128) + var(--home-h));
+  background: var(--sky-gradient);
+}
+
+/* Dải trời của design system nhạt, nên nhãn trên nền trời dùng token chữ tối
+   thay vì chữ trắng — trắng trên nền nhạt là không đọc được. */
+.skynote {
+  margin: 0 0 var(--spacing-12);
+  font-size: 13px; line-height: 20px;
+  color: var(--text-secondary);
+}
+.card + .skynote { margin-top: var(--spacing-12); }
+
+/* Hai tab của Mục tiêu tài chính, thay cho tên màn dạng viên thuốc. Không có dải
+   nền riêng: thanh tab nổi thẳng trên dải trời. */
+.skytabs {
+  /* Ghim ngay dưới HUD, không phải top: 0 — tab là thứ để bấm, chui xuống dưới
+     HUD là mất luôn. */
+  position: sticky; top: calc(var(--status-h) + var(--hud-height)); z-index: 12;
+  padding: var(--spacing-10) 0 var(--spacing-14);
+}
+.skytabs__track {
+  display: flex; gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--base-white) 55%, transparent);
+}
+.skytabs button {
+  flex: 1; height: 38px;
+  border-radius: var(--radius-full);
+  font-size: 14px; font-weight: 600;
+  color: var(--ekko-midnight);
+  white-space: nowrap;
+  transition: background-color .16s ease, color .16s ease;
+}
+.skytabs button[aria-selected="true"] {
+  background: var(--bg-primary);
+  color: var(--text-brand-500);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--grey-900) 12%, transparent);
+}
+
+
+/* Tiêu đề nhóm mục tiêu gợi ý. */
+.goalgroup {
+  display: flex; align-items: center; gap: var(--spacing-8);
+  margin: var(--spacing-20) 0 var(--spacing-10);
+  color: var(--text-secondary);
+  font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+
+.goalgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-12); }
+
+.tplcard {
+  display: grid; align-content: start; gap: 4px;
+  min-height: 118px;
+  padding: var(--spacing-16);
+  border-radius: var(--radius-20);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-card);
+  text-align: left;
+}
+.tplcard:active { transform: scale(.98); }
+.tplcard__emoji { font-size: 26px; line-height: 1; margin-bottom: var(--spacing-10); }
+.tplcard__name { font-size: 15px; font-weight: 600; line-height: 20px; }
+.tplcard__hint { font-size: 13px; line-height: 18px; color: var(--text-secondary); }
+
+/* --- màn thiết lập --- */
+.goalhero {
+  display: flex; align-items: center; gap: var(--spacing-14);
+  margin-bottom: var(--spacing-16);
+  padding: var(--spacing-14);
+  border-radius: var(--radius-20);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-card);
+}
+.goalhero__emoji {
+  width: 56px; height: 56px; flex: none;
+  border-radius: var(--radius-16);
+  background: var(--bg-brand-50);
+  display: grid; place-items: center; font-size: 28px;
+}
+.goalhero__meta { display: grid; gap: 2px; min-width: 0; }
+.goalhero__group {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-brand-500);
+}
+.goalhero__name { font-size: 18px; font-weight: 600; line-height: 24px; }
+
+.goalform { border-radius: var(--radius-20); }
+.goalform .input { height: 48px; border-radius: var(--radius-full); }
+.input--money { font-size: 18px; font-weight: 600; }
+
+.periodpick { display: flex; gap: var(--spacing-10); }
+.periodpick button {
+  flex: 1; height: 48px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  font-size: 15px; font-weight: 600;
+  color: var(--text-tertiary);
+}
+.periodpick button[aria-pressed="true"] {
+  border-color: var(--border-brand);
+  background: var(--bg-brand-50);
+  color: var(--text-brand-500);
+}
+
+/* Ekko tính hộ: nền đêm để tách hẳn khỏi phần người dùng nhập. */
+.ekkocalc {
+  margin-top: var(--spacing-16);
+  padding: var(--spacing-18) var(--spacing-20);
+  border-radius: var(--radius-20);
+  background: var(--ekko-midnight);
+  color: var(--text-white);
+}
+.ekkocalc__head {
+  display: flex; align-items: center; gap: var(--spacing-8);
+  margin-bottom: var(--spacing-10);
+  color: var(--ekko-lime);
+  font-size: 14px; font-weight: 700;
+}
+.ekkocalc__line { margin: 0; font-size: 17px; font-weight: 600; line-height: 24px; }
+.ekkocalc__line b { color: var(--ekko-lime); }
+.ekkocalc__sub { margin: var(--spacing-4) 0 0; font-size: 14px; line-height: 20px; color: color-mix(in srgb, var(--base-white) 62%, transparent); }
+.ekkocalc__hint { margin: 0; font-size: 14px; line-height: 20px; color: color-mix(in srgb, var(--base-white) 74%, transparent); }
+
+.formactions {
+  display: grid; grid-template-columns: 0.8fr 1fr; gap: var(--spacing-12);
+  margin-top: var(--spacing-20);
+}
+
+/* --------------------------------------------------------------- cards */
+.card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-16);
+  padding: var(--spacing-16);
+  box-shadow: var(--shadow-card);
+}
+.card + .card { margin-top: var(--spacing-12); }
+.card__head { display: flex; align-items: center; gap: var(--spacing-10); margin-bottom: var(--spacing-12); }
+.card__head h3 { margin: 0; font-size: 15px; font-weight: 600; flex: 1; }
+
+.section-title {
+  margin: var(--spacing-24) 0 var(--spacing-12);
+  font-size: 16px; font-weight: 600;
+  display: flex; align-items: baseline; gap: var(--spacing-8);
+}
+.section-title span { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
+.muted { color: var(--text-secondary); font-size: 13px; line-height: 20px; }
+
+/* Nằm trong dòng giữa các thẻ, không nổi ở đáy màn: việc nên làm tiếp đứng ngay
+   sau tình hình chuỗi ngày, và không còn chắn nội dung phía dưới. */
+.cta {
+  min-width: 0;
+  width: 100%;
+  margin-block: var(--spacing-12);
+  display: flex; align-items: center; gap: var(--spacing-12);
+  padding: var(--spacing-14) var(--spacing-18) var(--spacing-14) var(--spacing-16);
+  border-radius: var(--radius-18);
+  background: var(--bg-brand-500); color: var(--text-white);
+  box-shadow: var(--shadow-float);
+  text-align: left;
+}
+.cta:active { transform: translateY(1px); }
+.cta__label { font-size: 11px; opacity: .82; }
+.cta__title { font-size: 15px; font-weight: 600; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cta__go { margin-left: auto; flex: none; display: grid; place-items: center; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-8);
+  height: 44px; padding: 0 var(--spacing-20);
+  border-radius: var(--radius-14);
+  font-weight: 600; font-size: 15px;
+  background: var(--bg-brand-500); color: var(--text-white);
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { background: var(--bg-brand-200); color: color-mix(in srgb, var(--base-white) 80%, transparent); cursor: not-allowed; transform: none; }
+.btn--ghost { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-primary); }
+.btn--danger { background: var(--bg-error-50); color: var(--text-error); border: 1px solid var(--border-error); }
+.btn--block { width: 100%; }
+.btn--sm { height: 36px; font-size: 14px; padding: 0 var(--spacing-14); border-radius: var(--radius-12); }
+.btn--pill { height: 52px; border-radius: var(--radius-full); }
+.btn--white { background: var(--bg-primary); color: var(--text-primary); box-shadow: var(--shadow-card); }
+
+/* --------------------------------------------------------------- forms */
+.field { display: block; margin-bottom: var(--spacing-14); }
+.field > span { display: block; font-size: 14px; font-weight: 500; margin-bottom: var(--spacing-8); }
+.input {
+  width: 100%; height: 44px; padding: 0 var(--spacing-16);
+  border-radius: var(--radius-16);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  font-size: 15px;
+}
+.input:focus-visible { outline: none; border-color: var(--border-brand); box-shadow: 0 0 0 3px var(--bg-brand-50); }
+.input::placeholder { color: var(--text-tertiary); }
+textarea.input { height: auto; padding: var(--spacing-12) var(--spacing-16); resize: vertical; }
+
+.chips { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 var(--spacing-12);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  font-size: 13px; font-weight: 500;
+}
+.chip[aria-pressed="true"] { background: var(--bg-brand-50); border-color: var(--border-brand); color: var(--text-brand-500); }
+
+/* ----------------------------------------------------------- segmented */
+.segmented {
+  display: flex; gap: 4px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-full);
+}
+.segmented button {
+  flex: 1;
+  height: 34px;
+  border-radius: var(--radius-full);
+  font-size: 14px; font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: background-color .16s ease, color .16s ease;
+}
+.segmented button[aria-pressed="true"] {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--grey-900) 10%, transparent);
+}
+
+/* ------------------------------------------------------------ progress */
+.bar { height: 8px; border-radius: var(--radius-full); background: var(--bg-grey-200); overflow: hidden; }
+.bar__fill { height: 100%; border-radius: inherit; background: var(--bg-brand-500); transition: width .5s cubic-bezier(.16, 1, .3, 1); }
+.bar__fill--warn { background: var(--bg-warning-500); }
+.bar__fill--over { background: var(--bg-error-500); }
+.bar__fill--good { background: var(--bg-success-500); }
+
+.stat-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-8); }
+.stat-row b { font-size: 15px; font-weight: 600; }
+.stat-row small { font-size: 12px; color: var(--text-secondary); }
+.stat-big { font-size: 26px; font-weight: 600; line-height: 32px; }
+
+/* ------------------------------------------------------- lesson player */
+.player { position: fixed; inset: 0; z-index: 60; background: var(--bg-primary); display: flex; flex-direction: column; max-width: var(--shell-max); margin-inline: auto; padding-top: var(--status-h); }
+.player__bar { display: flex; gap: 4px; padding: max(var(--spacing-12), env(safe-area-inset-top)) var(--gutter) var(--spacing-8); }
+.player__seg { flex: 1; height: 4px; border-radius: var(--radius-full); background: var(--bg-grey-200); overflow: hidden; }
+.player__seg i { display: block; height: 100%; width: 0; background: var(--bg-brand-500); transition: width .3s ease; }
+.player__seg--done i { width: 100%; }
+.player__seg--current i { width: 100%; }
+.player__head { display: flex; align-items: center; gap: var(--spacing-12); padding: 0 var(--gutter) var(--spacing-12); }
+.player__head strong { font-size: 13px; font-weight: 500; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player__stage { flex: 1; overflow-y: auto; padding: 0 var(--gutter) var(--spacing-24); }
+.player__foot { padding: var(--spacing-12) var(--gutter) max(var(--spacing-16), env(safe-area-inset-bottom), var(--home-h)); border-top: 1px solid var(--border-secondary); background: var(--bg-primary); }
+
+.frame h2 { font-size: 21px; line-height: 28px; margin: 0 0 var(--spacing-12); font-weight: 600; }
+.frame p { margin: 0 0 var(--spacing-12); font-size: 15px; line-height: 24px; color: var(--text-primary); }
+.frame ul { margin: 0 0 var(--spacing-12); padding-left: var(--spacing-20); }
+.frame li { font-size: 15px; line-height: 24px; margin-bottom: 6px; }
+.frame blockquote {
+  margin: 0 0 var(--spacing-12); padding: var(--spacing-12) var(--spacing-16);
+  border-left: 3px solid var(--border-brand); background: var(--bg-brand-50);
+  border-radius: 0 var(--radius-12) var(--radius-12) 0;
+  font-size: 15px; line-height: 24px;
+}
+.frame__image {
+  width: 100%; max-height: 46vh; object-fit: contain;
+  border-radius: var(--radius-16); background: var(--bg-secondary);
+  margin-bottom: var(--spacing-14);
+}
+.frame__caption { font-size: 13px; color: var(--text-secondary); margin-top: -6px; margin-bottom: var(--spacing-12); }
+
+/* Slides keep the authored 1 : 1.371 ratio exactly. */
+.slide-frame {
+  aspect-ratio: 1 / 1.371;
+  width: 100%;
+  border-radius: var(--radius-16);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--spacing-12);
+}
+.slide-frame img { width: 100%; height: 100%; object-fit: contain; }
+
+.hotspot-wrap { position: relative; border-radius: var(--radius-16); overflow: hidden; background: var(--bg-secondary); margin-bottom: var(--spacing-12); }
+.hotspot-wrap img { display: block; width: 100%; }
+.hotspot {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 34px; height: 34px; border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--base-white) 94%, transparent);
+  border: 2px solid var(--bg-brand-500);
+  color: var(--text-brand-500);
+  font-size: 15px; font-weight: 600;
+  display: grid; place-items: center;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--ekko-midnight) 28%, transparent);
+}
+.hotspot::after {
+  content: ''; position: absolute; inset: -8px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--bg-brand-500);
+  opacity: .5;
+  animation: ping 2.2s ease-out infinite;
+}
+.hotspot[data-seen="true"] { background: var(--bg-brand-500); color: var(--text-white); border-color: var(--text-white); }
+.hotspot[data-seen="true"]::after { display: none; }
+.hotspot-note {
+  border: 1px solid var(--border-brand); background: var(--bg-brand-50);
+  border-radius: var(--radius-14); padding: var(--spacing-12) var(--spacing-14);
+  margin-bottom: var(--spacing-12);
+}
+.hotspot-note strong { display: block; font-size: 14px; margin-bottom: 4px; }
+.hotspot-note p { margin: 0; font-size: 14px; line-height: 21px; }
+
+.quiz-option {
+  display: flex; gap: var(--spacing-12); align-items: flex-start;
+  width: 100%; text-align: left;
+  padding: var(--spacing-14);
+  border-radius: var(--radius-14);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  margin-bottom: var(--spacing-10);
+  font-size: 15px; line-height: 22px;
+}
+.quiz-option[data-state="picked"] { border-color: var(--border-brand); background: var(--bg-brand-50); }
+.quiz-option[data-state="correct"] { border-color: var(--border-success); background: var(--bg-success-50); }
+.quiz-option[data-state="wrong"] { border-color: var(--border-error); background: var(--bg-error-50); }
+.quiz-option i { font-style: normal; font-weight: 600; color: var(--text-secondary); }
+.quiz-explain { font-size: 14px; line-height: 21px; padding: var(--spacing-12); border-radius: var(--radius-12); background: var(--bg-secondary); }
+
+/* -------------------------------------------------------------- reward */
+.reward {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--ekko-midnight) 55%, transparent);
+  backdrop-filter: blur(6px);
+  padding: var(--spacing-24);
+}
+.reward__card {
+  width: 100%; max-width: 360px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-24);
+  padding: var(--spacing-24);
+  text-align: center;
+  animation: pop .38s cubic-bezier(.2, 1.3, .5, 1);
+}
+.reward__card img { width: 120px; height: 120px; object-fit: contain; }
+.reward__card h2 { margin: var(--spacing-8) 0 4px; font-size: 22px; font-weight: 600; }
+.reward__stats { display: flex; justify-content: center; gap: var(--spacing-10); flex-wrap: wrap; margin: var(--spacing-16) 0; }
+.reward__badge { display: flex; align-items: center; gap: var(--spacing-10); text-align: left; padding: var(--spacing-10); border-radius: var(--radius-14); background: var(--bg-brand-50); margin-bottom: var(--spacing-8); }
+.reward__badge span { font-size: 24px; }
+.reward__badge b { display: block; font-size: 14px; }
+.reward__badge small { font-size: 12px; color: var(--text-secondary); }
+
+/* --------------------------------------------------------------- lists */
+.row {
+  display: flex; align-items: center; gap: var(--spacing-12);
+  padding: var(--spacing-12) 0;
+}
+.row + .row { border-top: 1px solid var(--border-secondary); }
+.row__icon {
+  width: 38px; height: 38px; border-radius: var(--radius-12);
+  display: grid; place-items: center; font-size: 18px; flex: none;
+  background: var(--bg-secondary);
+}
+.row__main { flex: 1; min-width: 0; }
+.row__title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row__sub { font-size: 12px; color: var(--text-secondary); }
+.row__value { font-size: 14px; font-weight: 600; white-space: nowrap; }
+
+.lesson-node {
+  display: flex; align-items: center; gap: var(--spacing-14);
+  padding: var(--spacing-12); border-radius: var(--radius-16);
+  background: var(--bg-primary); border: 1px solid var(--border-secondary);
+  width: 100%; text-align: left; margin-bottom: var(--spacing-10);
+}
+.lesson-node[data-locked="true"] { opacity: .55; }
+.lesson-node__mark {
+  width: 44px; height: 44px; border-radius: var(--radius-full);
+  display: grid; place-items: center; flex: none;
+  background: var(--bg-brand-50); color: var(--text-brand-500);
+  font-weight: 600; font-size: 15px;
+}
+.lesson-node[data-done="true"] .lesson-node__mark { background: var(--bg-success-500); color: var(--text-white); }
+
+.module-card { display: block; width: 100%; text-align: left; padding: 0; overflow: hidden; }
+.module-card__art { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-14); }
+.module-card__art > span:last-child { flex: none; }
+.module-card__art img { width: 62px; height: 62px; object-fit: contain; flex: none; }
+.module-card__meta { flex: 1; min-width: 0; }
+.module-card__meta h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+.module-card__foot { padding: 0 var(--spacing-14) var(--spacing-14); }
+
+.badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-10); }
+.badge-tile {
+  border-radius: var(--radius-16); padding: var(--spacing-12) var(--spacing-8);
+  text-align: center; border: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+}
+.badge-tile[data-earned="false"] { background: var(--bg-secondary); }
+.badge-tile[data-earned="false"] .badge-tile__icon { filter: grayscale(1); opacity: .4; }
+.badge-tile__icon { font-size: 28px; line-height: 34px; }
+.badge-tile__name { font-size: 12px; font-weight: 600; line-height: 16px; margin-top: 4px; }
+
+.botfab {
+  position: fixed; right: max(var(--gutter), calc(50% - var(--shell-max) / 2 + var(--gutter)));
+  bottom: calc(var(--spacing-16) + max(env(safe-area-inset-bottom), var(--home-h)));
+  width: var(--quick-h); height: var(--quick-h); border-radius: var(--radius-full);
+  background: var(--bg-brand-500);
+  box-shadow: var(--shadow-float);
+  display: grid; place-items: center;
+  z-index: 45;
+}
+.botfab img { width: 40px; height: 40px; }
+.botfab:active { transform: scale(.94); }
+
+
+/* ---------------------------------------------------------- quick entry
+   Ghi chi tiêu nhanh, luôn có ở đáy mọi màn hình. Cùng bộ đọc tiếng Việt mà
+   Ekko bot dùng, nhưng ghi thẳng vào sổ. Chiếm phần còn lại của hàng có nút
+   bot, nên không thêm tầng chrome nào. */
+.quickbar {
+  position: fixed;
+  bottom: calc(var(--spacing-16) + max(env(safe-area-inset-bottom), var(--home-h)));
+  left: max(var(--gutter), calc(50% - var(--shell-max) / 2 + var(--gutter)));
+  width: calc(min(100%, var(--shell-max)) - 108px);
+  height: var(--quick-h);
+  z-index: 44;
+  display: flex; align-items: center; gap: var(--spacing-8);
+  padding: 0 6px 0 var(--spacing-16);
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  box-shadow: var(--shadow-float);
+}
+.quickbar input {
+  flex: 1; min-width: 0;
+  border: 0; outline: none; background: transparent;
+  font-size: 15px; color: var(--text-primary);
+}
+.quickbar input::placeholder { color: var(--text-tertiary); }
+
+.quickbar__send {
+  width: 40px; height: 40px; flex: none;
+  border-radius: var(--radius-full);
+  background: var(--bg-brand-500); color: var(--text-white);
+  display: grid; place-items: center;
+  font-size: 17px; line-height: 1;
+  opacity: 0; transform: scale(.7);
+  transition: opacity .16s ease, transform .16s cubic-bezier(.2, 1.3, .5, 1);
+  pointer-events: none;
+}
+.quickbar.is-ready .quickbar__send { opacity: 1; transform: none; pointer-events: auto; }
+.quickbar__send:active { transform: scale(.92); }
+.quickbar.is-busy { opacity: .6; pointer-events: none; }
+
+/* ---------------------------------------------------------------- sheet */
+.sheet-backdrop { position: fixed; inset: 0; background: color-mix(in srgb, var(--grey-900) 45%, transparent); z-index: 70; animation: fade .2s ease; }
+.sheet {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: 0; width: 100%; max-width: var(--shell-max);
+  max-height: 88%;
+  background: var(--bg-primary);
+  border-radius: var(--radius-24) var(--radius-24) 0 0;
+  z-index: 71;
+  display: flex; flex-direction: column;
+  animation: slide-up .28s cubic-bezier(.16, 1, .3, 1);
+}
+.sheet__head { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--gutter); border-bottom: 1px solid var(--border-secondary); }
+.sheet__head h2 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
+.sheet__body { overflow-y: auto; padding: var(--gutter); padding-bottom: max(var(--gutter), env(safe-area-inset-bottom), var(--home-h)); }
+
+/* ----------------------------------------------------------------- bot */
+.chat { display: flex; flex-direction: column; gap: var(--spacing-10); }
+.msg { max-width: 84%; padding: var(--spacing-10) var(--spacing-14); border-radius: var(--radius-16); font-size: 15px; line-height: 22px; }
+.msg--bot { align-self: flex-start; background: var(--bg-secondary); border-bottom-left-radius: var(--radius-4); }
+.msg--user { align-self: flex-end; background: var(--bg-brand-500); color: var(--text-white); border-bottom-right-radius: var(--radius-4); }
+.msg p { margin: 0 0 6px; }
+.msg p:last-child { margin-bottom: 0; }
+.msg strong { font-weight: 600; }
+.msg ul { margin: 4px 0; padding-left: var(--spacing-18); }
+/* Câu gõ ở thanh ghi nhanh, không gõ trong khung chat. */
+.msg__tag { display: block; margin-top: var(--spacing-4); font-size: 11px; opacity: .78; }
+.chat__composer { display: flex; gap: var(--spacing-8); padding: var(--spacing-12) var(--gutter) max(var(--spacing-12), env(safe-area-inset-bottom), var(--home-h)); border-top: 1px solid var(--border-secondary); }
+.chat__composer .input { flex: 1; }
+.typing { display: inline-flex; gap: 4px; align-items: center; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-tertiary); animation: blink 1.2s infinite; }
+.typing i:nth-child(2) { animation-delay: .18s; }
+.typing i:nth-child(3) { animation-delay: .36s; }
+
+/* --------------------------------------------------------------- toast
+   Trượt xuống từ đỉnh màn hình, nằm lại 4 giây rồi trượt lên biến mất.
+   Chỗ đậu nằm dưới HUD: thông báo "Đã ghi..." thường đi kèm XP và streak vừa đổi,
+   che HUD 4 giây là che đúng thứ người dùng muốn xem. Lúc trượt thì nó bay qua
+   HUD, nên vẫn là động tác rơi từ mép trên xuống. */
+.toast-host {
+  position: fixed;
+  left: 50%; transform: translateX(-50%);
+  top: calc(var(--status-h) + var(--hud-height) + var(--spacing-8));
+  /* Điểm xuất phát và điểm thoát: đủ cao để nằm hẳn ngoài mép trên màn hình. */
+  --toast-rise: calc(-100% - var(--status-h) - var(--hud-height) - var(--spacing-8));
+  z-index: 90;
+  display: grid; gap: var(--spacing-8);
+  /* 100% ở đây là bề rộng màn hình điện thoại (khối chứa của `position: fixed`
+     bên trong `.device__screen`), không phải bề rộng cửa sổ trình duyệt — dùng
+     vw thì toast rộng hơn cả màn hình và bị cắt hai bên. */
+  width: min(100% - var(--gutter) * 2, 420px);
+  /* Toast là thông báo, không phải chỗ bấm; để nó chắn HUD phía dưới thì mất
+     một nhịp thao tác. */
+  pointer-events: none;
+}
+/* Hình thức do `.ekko-toast` của design system lo (thẻ trắng, viền, ô icon 36px);
+   phần này chỉ thêm chuyển động và màu ô icon theo sắc thái. */
+.toast { animation: toast-drop .28s cubic-bezier(.16, 1, .3, 1); }
+.toast__text { min-width: 0; flex: 1; }
+
+/* Nút đóng: cả dải toast tắt chuột (xem .toast-host) nên riêng nút này phải bật
+   lại, không thì bấm không ăn. */
+.toast__close {
+  flex: none; width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-8);
+  color: var(--text-tertiary);
+  pointer-events: auto;
+}
+.toast__close:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.toast__close:active { transform: scale(.9); }
+.toast--success .ekko-toast__icon { background: var(--bg-success-50); color: var(--text-success); }
+.toast--warning .ekko-toast__icon { background: var(--bg-warning-50); color: var(--text-warning); }
+.toast--error .ekko-toast__icon { background: var(--bg-error-50); color: var(--text-error); }
+/* Cảnh báo chi tiêu dài hơn một dòng xác nhận, nên cần thêm chỗ. */
+.toast--warning .ekko-toast__body { line-height: 18px; }
+.toast.is-leaving {
+  transform: translateY(var(--toast-rise));
+  opacity: 0;
+  transition: transform .28s cubic-bezier(.3, 0, .8, .15), opacity .24s ease .04s;
+}
+
+.empty { text-align: center; padding: var(--spacing-32) var(--gutter); }
+.empty img { width: 96px; height: 96px; object-fit: contain; margin-bottom: var(--spacing-12); }
+.empty h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+
+.skeleton { border-radius: var(--radius-14); background: linear-gradient(90deg, var(--bg-grey-200) 25%, var(--bg-secondary) 50%, var(--bg-grey-200) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+
+/* ------------------------------------------------------------ keyframes */
+@keyframes float-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+@keyframes bob { 0%, 100% { transform: translate(-50%, -50%) translateY(0); } 50% { transform: translate(-50%, -50%) translateY(-6px); } }
+@keyframes ping { 0% { transform: scale(.85); opacity: .6; } 70%, 100% { transform: scale(1.25); opacity: 0; } }
+@keyframes pop { from { transform: scale(.86); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-up { from { transform: translate(-50%, 18px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes toast-drop {
+  from { transform: translateY(var(--toast-rise)); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes blink { 0%, 60%, 100% { opacity: .3; } 30% { opacity: 1; } }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* The boot mascot is not absolutely positioned, so it needs its own bob. */
+.boot img { animation: bob-simple 2.4s ease-in-out infinite; }
+@keyframes bob-simple { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
