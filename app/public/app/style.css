@@ -287,6 +287,7 @@ body.is-modal .homebar { opacity: 0; }
    ở đây sẽ để lộ một vạch trắng giữa HUD và bầu trời. */
 .screen__body--flush { padding: 0 0 calc(var(--spacing-128) + var(--home-h)); }
 .screen__body--map { padding-bottom: 0; }
+.screen__body--islands { padding: 0; }
 
 .topbar {
   position: sticky; top: 0; z-index: 25;
@@ -542,6 +543,130 @@ body.is-modal .homebar { opacity: 0; }
 }
 .mapmodule__locked { font-size: 12px; color: var(--text-secondary); }
 
+/* ------------------------------------------------ concept 2: quần đảo so le
+   Hình đảo cắt từ Đảo.svg (assets/islands/trail/). Bố cục là một cột zíc-zắc:
+   mỗi hàng chia đôi, hòn đảo chiếm một bên và nhãn bài chiếm bên còn lại, so le
+   trái – phải theo thứ tự chặng. Đường nối không phải hình rời bắc giữa hai đảo
+   mà là một nét đứt SVG đo theo vị trí thật sau khi layout xong (`.trail`), nên
+   không cần chồng lấn margin âm để mối nối trông liền. */
+.islboard {
+  position: relative;
+  min-height: 100%;
+  padding: 0 var(--gutter) calc(var(--spacing-128) + var(--home-h));
+  background: var(--sky-gradient);
+  overflow: hidden;   /* mây tràn ra ngoài lề không được đẻ ra thanh cuộn ngang */
+}
+
+.islcloud { position: absolute; opacity: .9; pointer-events: none; }
+.islcloud--1 { width: 34%; top: 8%; right: -6%; }
+.islcloud--2 { width: 40%; top: 42%; left: -10%; }
+.islcloud--3 { width: 30%; top: 74%; right: -4%; }
+
+/* --- đảo của người chơi, mở đầu hành trình --- */
+.islhome { position: relative; display: grid; justify-items: center; gap: var(--spacing-4); }
+.islhome__art { position: relative; z-index: 1; width: 58%; filter: drop-shadow(0 16px 18px color-mix(in srgb, var(--ekko-midnight) 24%, transparent)); }
+.islhome__label {
+  position: relative; z-index: 3;
+  padding: var(--spacing-6) var(--spacing-14);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--base-white) 94%, transparent);
+  box-shadow: var(--shadow-float);
+  font-size: 13px; font-weight: 600;
+}
+
+/* --- mốc mô-đun, có sợi dây vắt sang quần đảo mới --- */
+.islmodule { position: relative; z-index: 3; display: grid; justify-items: center; margin-top: var(--spacing-8); }
+.islmodule[data-locked="true"] { opacity: .62; }
+.islmodule__row { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; justify-content: center; }
+.islmodule__tag {
+  padding: var(--spacing-4) var(--spacing-10);
+  border-radius: var(--radius-full);
+  background: var(--ekko-midnight); color: var(--ekko-lime);
+  font-size: 11px; font-weight: 700; letter-spacing: .06em;
+}
+.islmodule__title {
+  padding: var(--spacing-4) var(--spacing-12);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--base-white) 94%, transparent);
+  box-shadow: var(--shadow-card);
+  font-size: 13px; font-weight: 600;
+}
+.islmodule__locked { margin-top: var(--spacing-4); font-size: 12px; color: var(--text-secondary); }
+
+/* Hành trình đọc từ dưới lên: DOM giữ đúng thứ tự học, CSS lật lại thứ tự hiện. */
+.isltrack { display: flex; flex-direction: column-reverse; }
+
+/* --- một chặng: đảo + số + nhãn ---
+   Các chặng xếp so le trái – phải; nhãn bài chiếm nửa còn lại của hàng nên đọc
+   xuống là một lối mòn lượn qua lượn lại. */
+.islstop {
+  /* Thứ tự vẽ khai báo ở từng phần bên trong, không đặt z-index ở đây:
+     nét đứt (0) → hình đảo (1) → số chặng, chú heo, nhãn (3). */
+  position: relative;
+  display: grid; align-items: center; gap: var(--spacing-8);
+
+  /* --align (do explore-islands.js tính) kéo đảo lên cho vành cỏ của mọi hình rơi
+     vào cùng một đường: hộp của đảo có cây thừa gần nửa trên là tán lá và trời,
+     không bù thì nhịp giữa các chặng lúc sát lúc thưa. */
+  margin-top: calc(var(--spacing-24) + var(--align, 0%));
+}
+.islstop--left { grid-template-columns: 46% 1fr; justify-items: start; }
+.islstop--right { grid-template-columns: 1fr 46%; justify-items: end; }
+.islstop--left .islstop__art { grid-area: 1 / 1; }
+.islstop--left .islstop__meta { grid-area: 1 / 2; }
+.islstop--right .islstop__art { grid-area: 1 / 2; }
+.islstop--right .islstop__meta { grid-area: 1 / 1; }
+
+/* Chặng mở đầu mô-đun mới không được trùm lên mốc mô-đun ngay trên nó. */
+.islstop[data-after-module="true"] { margin-top: max(var(--spacing-8), calc(var(--align, 0%) + var(--spacing-24))); }
+
+.islstop__art { position: relative; width: 100%; }
+.islstop__art button { position: relative; z-index: 1; }   /* hình đảo che nét đứt đi qua sau lưng */
+.islstop__art button { display: block; width: 100%; padding: 0; }
+/* Chỉ ảnh đảo trong nút mới trải hết bề ngang — chú heo bên cạnh có cỡ riêng. */
+.islstop__art button img { display: block; width: 100%; filter: drop-shadow(0 10px 12px color-mix(in srgb, var(--ekko-midnight) 20%, transparent)); }
+.islstop__art button:active img { transform: scale(.96); transition: transform .12s; }
+
+.islstop__num {
+  /* Số bên trái, chú heo bên phải: hai thứ không bao giờ đè nhau. Cả hai bám
+     vành cỏ (--ground) chứ không bám mép hộp, vì hộp của đảo có cây thừa rất
+     nhiều trời ở nửa trên. */
+  position: absolute; z-index: 3; top: calc(var(--ground, .38) * 100% - 24px); left: 2%;
+  min-width: 30px; height: 30px; padding: 0 var(--spacing-6);
+  border-radius: var(--radius-full);
+  background: var(--bg-brand-500); color: var(--text-white);
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 700;
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--ekko-midnight) 35%, transparent);
+}
+/* Đảo bên phải thì số đứng bên phải: mối nối ván tới từ bên trái, không để số
+   đè lên đầu tấm ván. */
+.islstop--right .islstop__num { left: auto; right: 2%; }
+.islstop[data-state="done"] .islstop__num { background: var(--bg-success-500); }
+.islstop[data-state="locked"] .islstop__num { background: var(--grey-500); }
+.islstop[data-state="locked"] .islstop__art img { filter: grayscale(.55) opacity(.75); }
+
+.islstop__pig {
+  /* Chú heo đứng trên mặt cỏ, nên mép dưới đặt ngay tại vành cỏ. */
+  position: absolute; z-index: 3; bottom: calc((1 - var(--ground, .38)) * 100% - 1%); right: -2%;
+  width: 20%; object-fit: contain;
+  filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ekko-midnight) 32%, transparent));
+}
+
+/* Nhãn nghiêng theo bên của chặng, và không được ép cột rộng ra (min-width: 0)
+   nếu không bong bóng dài sẽ đẩy tràn cả hàng. */
+.islstop__meta { position: relative; z-index: 3; display: grid; gap: 2px; min-width: 0; justify-items: inherit; }
+.islstop__title {
+  max-width: 100%;
+  padding: var(--spacing-6) var(--spacing-12);
+  border-radius: var(--radius-16);
+  background: color-mix(in srgb, var(--base-white) 95%, transparent);
+  box-shadow: var(--shadow-card);
+  font-size: 13px; font-weight: 600; line-height: 18px; text-align: left;
+}
+.islstop__sub { padding: 0 var(--spacing-4); font-size: 11px; color: var(--text-secondary); }
+.islstop[data-state="locked"] .islstop__title { color: var(--text-tertiary); }
+
 /* --- đảo của người chơi, điểm khởi hành ở dưới cùng --- */
 .maphome { display: grid; justify-items: center; padding: 0 var(--gutter) var(--spacing-8); }
 .maphome img { width: 78%; filter: drop-shadow(0 14px 16px color-mix(in srgb, var(--ekko-midnight) 20%, transparent)); }
@@ -704,6 +829,14 @@ body.is-modal .homebar { opacity: 0; }
   display: flex; align-items: baseline; gap: var(--spacing-8);
 }
 .section-title span { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
+/* Liên kết dạng chữ nằm cuối một tiêu đề mục ("Xem tất cả"). */
+.linkbtn {
+  margin-left: auto;
+  padding: 0;
+  color: var(--text-brand-500);
+  font-size: 13px; font-weight: 600;
+}
+.linkbtn:active { opacity: .6; }
 .muted { color: var(--text-secondary); font-size: 13px; line-height: 20px; }
 
 /* Nằm trong dòng giữa các thẻ, không nổi ở đáy màn: việc nên làm tiếp đứng ngay
@@ -951,6 +1084,21 @@ textarea.input { height: auto; padding: var(--spacing-12) var(--spacing-16); res
 .module-card__meta { flex: 1; min-width: 0; }
 .module-card__meta h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
 .module-card__foot { padding: 0 var(--spacing-14) var(--spacing-14); }
+
+/* --- sáu hòn đảo ---
+   Ảnh đảo là chính, chú heo của cấp đó nép ở góc dưới: một dòng cho thấy cả hai
+   phần thưởng hình ảnh của cấp mà không phải xếp hai ảnh cạnh nhau. */
+.levelart { position: relative; width: 64px; height: 64px; flex: none; }
+.levelart__isle { width: 100%; height: 100%; object-fit: contain; display: block; }
+.levelart__pig {
+  position: absolute; right: -6px; bottom: -4px;
+  width: 34px; height: 34px; object-fit: contain;
+  filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--ekko-midnight) 30%, transparent));
+}
+
+.levelrow { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) 0; }
+.levelrow + .levelrow { border-top: 1px solid var(--border-secondary); }
+.levelrow[data-locked="true"] { opacity: .55; }
 
 .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-10); }
 .badge-tile {

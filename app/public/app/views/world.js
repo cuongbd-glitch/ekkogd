@@ -131,7 +131,7 @@ export default async function worldView(ctx) {
 }
 
 function streakMessage(streak) {
-  if (streak.count === 0) return 'Hoàn thành một bài học hoặc mở một chức năng hôm nay để bắt đầu chuỗi.';
+  if (streak.count === 0) return 'Hoàn thành một bài học, hoặc ghi một khoản chi, lưu ngân sách, hoặc đặt/nạp một mục tiêu hôm nay để bắt đầu chuỗi.';
   if (streak.status === 'frozen') {
     return `Bạn đã nghỉ ${streak.frozenDays} ngày. Còn ${streak.freezeDaysLeft} ngày để quay lại trước khi mất chuỗi.`;
   }
@@ -141,10 +141,9 @@ function streakMessage(streak) {
 
 /** A light summary of the month's money so the home screen is not all game. */
 async function todaySnapshot() {
-  // `peek=1`: reading the summary here must not count as visiting the islands.
   const [expenses, budget] = await Promise.all([
-    api.get('/api/expenses?peek=1'),
-    api.get('/api/budget?peek=1'),
+    api.get('/api/expenses'),
+    api.get('/api/budget'),
   ]);
 
   const spent = budget.totals.spent;

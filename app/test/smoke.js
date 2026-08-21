@@ -268,16 +268,37 @@ async function main() {
     check('Trao huy hiệu "Mô đun đầu tiên" khi xong cả mô đun',
       (await get('member', '/api/me/badges')).json.all.find((b) => b.code === 'first_module')?.earned === true);
 
-    section('Ba chức năng');
-    const peek = await get('member', '/api/budget?peek=1');
-    check('Xem nhanh không tính là ghé đảo', peek.json.rewards === null);
+    section('Mở chức năng thì không được gì');
+    const beforeOpen = (await get('member', '/api/me/world')).json;
+    for (const path of ['/api/budget', '/api/goals', '/api/expenses']) {
+      await get('member', path);
+      await get('member', path);   // mở lại lần nữa cũng vậy
+    }
+    const afterOpen = (await get('member', '/api/me/world')).json;
 
+    check('Mở chức năng không cộng XP', afterOpen.progress.xp === beforeOpen.progress.xp,
+      `${beforeOpen.progress.xp} → ${afterOpen.progress.xp}`);
+    check('Mở chức năng không đụng tới streak',
+      afterOpen.streak.count === beforeOpen.streak.count && afterOpen.streak.countedToday === beforeOpen.streak.countedToday);
+    check('Mở chức năng không ghi vào nhật ký hoạt động',
+      (await get('member', '/api/me/activity?limit=50')).json.every((a) => a.kind !== 'feature_used'));
+    check('Đọc dữ liệu không trả về phần thưởng nào',
+      (await get('member', '/api/budget')).json.rewards === undefined
+      && (await get('member', '/api/goals')).json.rewards === undefined
+      && (await get('member', '/api/expenses')).json.rewards === undefined);
+    check('Đảo chưa có dấu tích khi mới chỉ mở lên xem',
+      afterOpen.features.find((f) => f.code === 'budget')?.usedToday === false);
+
+    section('Ba chức năng');
     const budget = await put('member', '/api/budget', {
       month: new Date().toISOString().slice(0, 7),
       income: 12000000,
       items: [{ categoryCode: 'food', planned: 3000000 }, { categoryCode: 'saving', planned: 2000000 }],
     });
     check('Lưu được ngân sách', budget.status === 200 && budget.json.totals.planned === 5000000);
+    check('Làm một việc thật thì mới được thưởng', budget.json.rewards?.xp > 0, JSON.stringify(budget.json.rewards?.xp));
+    check('Lúc đó đảo mới có dấu tích',
+      (await get('member', '/api/me/world')).json.features.find((f) => f.code === 'budget')?.usedToday === true);
     check('Ngân sách đối chiếu với chi tiêu thực tế', budget.json.totals.spent >= 0);
 
     const goal = await post('member', '/api/goals', { name: 'Mua xe máy', targetAmount: 20000000, icon: '🛵' });
@@ -290,7 +311,7 @@ async function main() {
       || (await get('member', '/api/me/badges')).json.all.find((b) => b.code === 'goal_done')?.earned === true);
 
     section('Mục tiêu gợi ý');
-    const goalsHome = await get('member', '/api/goals?peek=1');
+    const goalsHome = await get('member', '/api/goals');
     check('Trả về bộ mục tiêu gợi ý theo nhóm',
       goalsHome.json.templates.length === 4 && goalsHome.json.templates.every((g) => g.templates.length > 0));
     check('Mỗi gợi ý có sẵn số tiền và số tháng',
@@ -338,7 +359,7 @@ async function main() {
 
     const ranges = {};
     for (const key of ['today', 'week', 'month']) {
-      ranges[key] = (await get('member', `/api/expenses?range=${key}&peek=1`)).json;
+      ranges[key] = (await get('member', `/api/expenses?range=${key}`)).json;
     }
     check('Lọc "Hôm nay" chỉ lấy đúng một ngày', ranges.today.from === ranges.today.to);
     check('Lọc "Tuần này" trải đúng 7 ngày',
@@ -592,6 +613,39 @@ async function main() {
     const users = await get('admin', '/api/admin/stats/users');
     check('Danh sách người học không lộ dữ liệu chi tiêu',
       users.json.length >= 2 && !('expenses' in users.json[0]) && !('budget' in users.json[0]));
+
+    section('Concept màn Khám phá');
+    const conceptsBefore = await get('admin', '/api/admin/concepts');
+    check('Có hai concept', conceptsBefore.json.length === 2, String(conceptsBefore.json.length));
+    check('Chỉ một concept được bật',
+      conceptsBefore.json.filter((c) => c.active).length === 1,
+      JSON.stringify(conceptsBefore.json.map((c) => `${c.code}:${c.active}`)));
+    check('Mặc định là concept đảo trên trời',
+      conceptsBefore.json.find((c) => c.active)?.code === 'sky');
+    check('Bản đồ học tập nói rõ concept đang dùng',
+      (await get('member', '/api/learn/map')).json.concept === 'sky');
+
+    const conceptMapBefore = (await get('member', '/api/learn/map')).json;
+    const switched = await put('admin', '/api/admin/concepts/active', { code: 'islands' });
+    check('Đổi được sang concept quần đảo',
+      switched.json.find((c) => c.active)?.code === 'islands'
+      && switched.json.filter((c) => c.active).length === 1);
+    const conceptMapAfter = (await get('member', '/api/learn/map')).json;
+    check('App người học nhận concept mới', conceptMapAfter.concept === 'islands');
+    check('Đổi concept không đụng tới lộ trình học',
+      JSON.stringify(conceptMapBefore.entries) === JSON.stringify(conceptMapAfter.entries)
+      && conceptMapBefore.levelOrder === conceptMapAfter.levelOrder);
+
+    const badConcept = await put('admin', '/api/admin/concepts/active', { code: 'khong-co-that' });
+    check('Mã concept lạ bị từ chối', badConcept.status === 400);
+    check('Concept đang bật không đổi vì một request hỏng',
+      (await get('admin', '/api/admin/concepts')).json.find((c) => c.active)?.code === 'islands');
+
+    await put('admin', '/api/admin/concepts/active', { code: 'sky' });
+    check('Đổi ngược về concept 1 được', (await get('member', '/api/learn/map')).json.concept === 'sky');
+
+    check('Người học không đổi được concept',
+      (await put('member', '/api/admin/concepts/active', { code: 'islands' })).status === 403);
 
     section('Bảo mật');
     const traversal = await fetch(`${BASE}/assets/../../server/config.js`);

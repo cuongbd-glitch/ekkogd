@@ -1,9 +1,10 @@
 /**
  * The three tool islands: Lập ngân sách, Mục tiêu tài chính, Ghi chép chi tiêu.
  *
- * Every read marks the feature as opened today (first open per day pays XP and
- * feeds the streak); every write goes through the same helper so the streak
- * cannot be farmed by repeat taps.
+ * Mở một chức năng KHÔNG được thưởng gì: đọc dữ liệu chỉ là đọc dữ liệu. Chỉ khi
+ * người dùng thực sự làm một việc — lưu ngân sách, đặt hoặc nạp mục tiêu, ghi một
+ * khoản chi — mới đi qua `useFeature`, và cũng chỉ lần đầu trong ngày mới trả
+ * thưởng. Nhờ vậy không thể cày XP hay streak bằng cách vào ra một màn hình.
  */
 import { all, get, run, tx } from '../db.js';
 import { bad, notFound, Router } from '../lib/http.js';
@@ -18,13 +19,6 @@ export const featureRouter = new Router();
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-/**
- * The home screen reads budget and expense totals for its summary card. That
- * is not the member visiting the island, so `?peek=1` reads without claiming
- * the daily reward or the streak day.
- */
-const claimVisit = (userId, code, url) => (url.searchParams.get('peek') === '1' ? null : useFeature(userId, code));
 
 const categories = () => all('SELECT * FROM categories ORDER BY order_index, id');
 
@@ -103,8 +97,7 @@ function budgetPayload(userId, month) {
 featureRouter.get('/api/budget', ({ user, url }) => {
   const month = url.searchParams.get('month') || monthKey();
   if (!MONTH_RE.test(month)) throw bad('Tháng phải có dạng YYYY-MM');
-  const rewards = claimVisit(user.id, 'budget', url);
-  return { ...budgetPayload(user.id, month), rewards };
+  return budgetPayload(user.id, month);
 });
 
 featureRouter.put('/api/budget', ({ user, body }) => {
@@ -166,10 +159,7 @@ function goalPayload(userId) {
   };
 }
 
-featureRouter.get('/api/goals', ({ user, url }) => {
-  const rewards = claimVisit(user.id, 'goals', url);
-  return { ...goalPayload(user.id), rewards };
-});
+featureRouter.get('/api/goals', ({ user }) => goalPayload(user.id));
 
 featureRouter.post('/api/goals', ({ user, body }) => {
   const template = templateByCode(body.template);
@@ -302,8 +292,7 @@ export function expensePayload(userId, spec = resolveRange()) {
 
 featureRouter.get('/api/expenses', ({ user, url }) => {
   const spec = resolveRange({ range: url.searchParams.get('range'), month: url.searchParams.get('month') });
-  const rewards = claimVisit(user.id, 'expenses', url);
-  return { ...expensePayload(user.id, spec), rewards };
+  return expensePayload(user.id, spec);
 });
 
 /** Shared by the manual form and by Ekko bot's quick-log flow. */

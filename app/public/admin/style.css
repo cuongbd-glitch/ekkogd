@@ -396,3 +396,57 @@ img.thumb { width: 40px; height: 40px; object-fit: contain; border-radius: var(-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
+
+/* ------------------------------------------------------------- concept
+   Thẻ concept của màn Khám phá. Ảnh xem trước vẽ bằng CSS chứ không phải file
+   ảnh, nên nó không bao giờ lệch với bản thật khi giao diện đổi. */
+.cgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-16); }
+
+.ccard {
+  display: flex; flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-16);
+  overflow: hidden;
+}
+.ccard[data-active="true"] { border-color: var(--border-brand); box-shadow: 0 0 0 3px var(--bg-brand-50); }
+.ccard__body { padding: var(--spacing-16); flex: 1; }
+.ccard__head { display: flex; align-items: center; gap: var(--spacing-8); margin-bottom: var(--spacing-6); }
+.ccard__index { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-tertiary); }
+.ccard h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.ccard__tagline { margin: 2px 0 var(--spacing-8); font-size: 14px; color: var(--text-secondary); }
+.ccard__list { margin: var(--spacing-10) 0 0; padding-left: var(--spacing-18); font-size: 13px; color: var(--text-secondary); }
+.ccard__list li { margin-bottom: 2px; }
+.ccard__foot { padding: 0 var(--spacing-16) var(--spacing-16); }
+
+/* --- ảnh xem trước --- */
+.cpreview { position: relative; height: 150px; overflow: hidden; }
+.cpreview--sky { background: linear-gradient(180deg, var(--payday-blue-100) 0%, var(--payday-blue-50) 40%, var(--jade-50) 100%); }
+.cpreview__isle {
+  position: absolute; width: 46px; height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--success-300) 0%, var(--success-600) 100%);
+}
+.cpreview__trail {
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(140deg,
+    color-mix(in srgb, var(--base-white) 85%, transparent) 0 5px,
+    transparent 5px 16px);
+  mask-image: linear-gradient(140deg, transparent 12%, #000 22%, #000 74%, transparent 84%);
+}
+
+.cpreview--islands { background: linear-gradient(180deg, var(--payday-blue-100) 0%, var(--payday-blue-50) 60%, var(--jade-50) 100%); }
+.cpreview__isl { position: absolute; z-index: 1; }
+/* Nét đứt của concept 2, cùng kiểu nét với `.trail` bên app người học. Nó nằm
+   dưới hình đảo (z-index 0) nên đường đi khuất sau đảo đúng như màn thật. */
+.cpreview__zig { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.cpreview__zig path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ekko-midnight) 28%, transparent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 2 14;
+  /* viewBox 0–100 kéo giãn khác nhau hai chiều; không có dòng này thì nét đứt
+     dẹt ra thành mấy vệt bầu dục. */
+  vector-effect: non-scaling-stroke;
+}

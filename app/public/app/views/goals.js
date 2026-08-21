@@ -17,7 +17,6 @@ const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 export default async function goalsView(ctx) {
   const board = el('div.skyboard');
   let data = await api.get('/api/goals');
-  await celebrateRewards(data.rewards, { title: 'Ghé đảo Mục tiêu', subtitle: 'Mở lần đầu trong ngày' });
 
   const toTop = () => getScrollRoot().scrollTo({ top: 0 });
 
@@ -42,8 +41,7 @@ export default async function goalsView(ctx) {
     }, item.label))),
   ]);
 
-  /** Tải lại bằng ?peek=1: mở lại danh sách không phải một lần ghé đảo mới. */
-  const reload = async () => { data = await api.get('/api/goals?peek=1'); };
+  const reload = async () => { data = await api.get('/api/goals'); };
 
   const showList = () => mount(board, head(), ...(tab === 'mine' ? mineBody() : catalogueBody()));
   const showForm = (spec) => { mount(board, head(), ...formBody(spec)); toTop(); };
@@ -248,7 +246,6 @@ export default async function goalsView(ctx) {
     } else {
       toast({ title: `Đã nạp ${vnd(amount)}`, body: `vào "${goal.name}"` }, 'success');
     }
-    await celebrateRewards(result.rewards, { title: 'Ghé đảo Mục tiêu' });
     await ctx.refreshWorld();
     await reload();
     showList();

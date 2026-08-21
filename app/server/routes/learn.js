@@ -5,6 +5,7 @@ import { all, get, run, tx } from '../db.js';
 import { bad, notFound, Router } from '../lib/http.js';
 import { dayKey, nowIso } from '../lib/time.js';
 import { levelForXp, recordActivity } from '../services/progression.js';
+import { activeConcept } from '../services/concepts.js';
 import { readState } from '../services/streak.js';
 import { moduleOverview, nextLesson } from '../services/world.js';
 
@@ -98,7 +99,7 @@ learnRouter.get('/api/learn/map', ({ user }) => {
     });
   }
 
-  return { entries, levelOrder };
+  return { entries, levelOrder, concept: activeConcept() };
 });
 
 learnRouter.get('/api/learn/modules/:slug', ({ user, params }) => {

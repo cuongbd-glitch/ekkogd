@@ -32,18 +32,13 @@ export default async function badgesView(ctx) {
       el('div.badge-tile__name', {}, badge.name),
     ]))),
 
-    el('div.section-title', {}, ['Sáu hòn đảo']),
-    ...world.levels.map((level) => el('div.card', { style: { opacity: level.unlocked ? '1' : '.55' } }, [
-      el('div', { style: { display: 'flex', gap: '12px', alignItems: 'center' } }, [
-        el('img', { src: level.island_image, alt: '', width: 64, height: 64, style: { objectFit: 'contain' }, loading: 'lazy' }),
-        el('div', { style: { flex: '1' } }, [
-          el('div', { style: { fontSize: '15px', fontWeight: '600' } },
-            `${level.order_index}. ${level.emoji ? `${level.emoji} ` : ''}${level.name}`),
-          el('div.muted', {}, level.unlocked ? (level.perk || `${level.xp_required} XP`) : `🔒 Cần ${level.xp_required} XP`),
-        ]),
-        level.id === world.level?.id ? el('span.pill', {}, 'Đang ở đây') : null,
-      ]),
-    ])),
+    // Chỉ hòn đảo đang đứng. Năm đảo còn lại nằm sau "Xem tất cả" — trang này là
+    // bộ sưu tập, không phải bảng xếp hạng cấp độ.
+    el('div.section-title', {}, [
+      'Sáu hòn đảo',
+      el('button.linkbtn', { onclick: () => openLevels(world) }, 'Xem tất cả'),
+    ]),
+    currentLevelCard(world),
 
     el('div.section-title', {}, ['Hoạt động gần đây']),
     activity.length
@@ -51,6 +46,55 @@ export default async function badgesView(ctx) {
       : el('p.muted', {}, 'Chưa có hoạt động nào được ghi lại.'),
   ]);
 }
+
+/** Hòn đảo người học đang đứng, hiển thị thẳng trên trang. */
+function currentLevelCard(world) {
+  const level = world.levels.find((l) => l.id === world.level?.id) || world.levels[0];
+  if (!level) return null;
+
+  return el('div.card', {}, [
+    el('div', { style: { display: 'flex', gap: '12px', alignItems: 'center' } }, [
+      levelArt(level),
+      el('div', { style: { flex: '1' } }, [
+        el('div', { style: { fontSize: '15px', fontWeight: '600' } }, levelName(level)),
+        el('div.muted', {}, level.perk || `${level.xp_required} XP`),
+      ]),
+      el('span.pill', {}, 'Đang ở đây'),
+    ]),
+  ]);
+}
+
+/**
+ * Cả sáu đảo trong một bottom sheet, mỗi dòng có ảnh đảo và chú heo của cấp đó —
+ * đây là chỗ duy nhất trong app xem được trọn bộ nhân vật.
+ */
+function openLevels(world) {
+  sheet({
+    title: 'Sáu hòn đảo',
+    body: [
+      el('p.muted', { style: { marginTop: '0' } },
+        'Mỗi cấp độ là một hòn đảo và một chú heo riêng. Học bài và dùng ba chức năng để lên cấp.'),
+      ...world.levels.map((level) => el('div.levelrow', { dataset: { locked: String(!level.unlocked) } }, [
+        levelArt(level),
+        el('div', { style: { flex: '1', minWidth: '0' } }, [
+          el('div', { style: { fontSize: '15px', fontWeight: '600' } }, levelName(level)),
+          el('div.muted', {}, level.unlocked ? (level.perk || `${level.xp_required} XP`) : `🔒 Cần ${level.xp_required} XP`),
+        ]),
+        level.id === world.level?.id ? el('span.pill', {}, 'Đang ở đây') : null,
+      ])),
+    ],
+  });
+}
+
+const levelName = (level) => `${level.order_index}. ${level.emoji ? `${level.emoji} ` : ''}${level.name}`;
+
+/** Đảo là ảnh chính, chú heo của cấp đó nép ở góc. */
+const levelArt = (level) => el('div.levelart', {}, [
+  el('img.levelart__isle', { src: level.island_image, alt: '', loading: 'lazy' }),
+  level.character_image
+    ? el('img.levelart__pig', { src: level.character_image, alt: '', loading: 'lazy' })
+    : null,
+]);
 
 const KIND_LABEL = {
   lesson_completed: ['📖', 'Hoàn thành bài học'],

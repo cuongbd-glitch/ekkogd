@@ -16,6 +16,7 @@ import lesson from './pages/lesson.js';
 import features from './pages/features.js';
 import categories from './pages/categories.js';
 import members from './pages/members.js';
+import concepts from './pages/concepts.js';
 
 const root = document.getElementById('admin');
 
@@ -38,6 +39,7 @@ const PAGES = {
   '/features': features,
   '/categories': categories,
   '/members': members,
+  '/concepts': concepts,
 };
 
 const NAV = [
@@ -45,6 +47,7 @@ const NAV = [
   { route: '/', icon: '📊', label: 'Bảng điều khiển' },
   { route: '/members', icon: '👥', label: 'Người học' },
   { group: 'Trò chơi hoá' },
+  { route: '/concepts', icon: '🎨', label: 'Concept' },
   { route: '/levels', icon: '🏝️', label: 'Cấp độ heo' },
   { route: '/badges', icon: '🏅', label: 'Huy hiệu' },
   { group: 'Nội dung' },

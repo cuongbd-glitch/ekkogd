@@ -198,9 +198,11 @@ export function recordActivity(userId, {
 }
 
 /**
- * Marks that the user opened one of the three tools today. Only the first use
- * per feature per day pays out, so the streak cannot be farmed by tapping in and
- * out of the same screen.
+ * Ghi nhận người dùng đã LÀM một việc trong một trong ba chức năng hôm nay (lưu
+ * ngân sách, đặt/nạp mục tiêu, ghi một khoản chi). Chỉ riêng việc mở màn hình thì
+ * không gọi tới đây, nên mở app rồi bấm quanh không sinh ra XP hay streak nào.
+ *
+ * Chỉ lần đầu mỗi ngày cho mỗi chức năng mới trả thưởng.
  */
 export function useFeature(userId, featureCode, day = dayKey()) {
   const feature = get('SELECT * FROM features WHERE code = ? AND is_enabled = 1', featureCode);

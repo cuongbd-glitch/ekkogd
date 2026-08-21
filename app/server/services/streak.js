@@ -2,7 +2,8 @@
  * Streak rules, exactly as specified for Giao duc tai chinh:
  *
  *  - The first qualifying action of a calendar day (+1): finishing a lesson, or
- *    using one of the three tools (budget / goals / expenses).
+ *    doing something in one of the three tools: saving a budget, setting or
+ *    topping up a goal, logging an expense. Merely opening a screen does not count.
  *  - Miss the next day and the streak FREEZES rather than breaking.
  *  - The freeze holds for at most 3 missed days.
  *  - Come back on any of those days and the streak continues (+1).

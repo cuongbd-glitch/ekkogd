@@ -36,7 +36,7 @@ export default async function features(ctx) {
 
     el('div.panel', { style: { marginTop: '16px' } }, [
       el('div.panel__head', {}, [el('h2', {}, 'Cách tính streak')]),
-      el('p.hint', {}, 'Lần đầu tiên trong ngày người học mở một chức năng, hoặc hoàn thành một bài học, chuỗi streak được cộng +1 và họ nhận số XP cấu hình ở cột "XP mỗi ngày". Các lần sau trong cùng ngày không cộng thêm. Nghỉ một ngày thì chuỗi bị đóng băng, tối đa 3 ngày; quá 3 ngày thì mất chuỗi và bắt đầu lại từ 1.'),
+      el('p.hint', {}, 'Mở một chức năng lên xem thì KHÔNG được gì. Chỉ khi người học thực sự làm một việc — lưu ngân sách, đặt hoặc nạp mục tiêu, ghi một khoản chi — lần đầu trong ngày mới cộng +1 streak và trả số XP ở cột "XP mỗi ngày". Các lần sau trong cùng ngày không cộng thêm. Nghỉ một ngày thì chuỗi bị đóng băng, tối đa 3 ngày; quá 3 ngày thì mất chuỗi và bắt đầu lại từ 1.'),
     ]),
   ]);
 }

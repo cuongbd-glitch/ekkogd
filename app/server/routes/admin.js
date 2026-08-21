@@ -16,6 +16,7 @@ import { bad, notFound, Router } from '../lib/http.js';
 import { dayKey } from '../lib/time.js';
 import { BADGE_RULES } from '../services/progression.js';
 import { adminUserSummary } from './session.js';
+import { conceptBoard, setActiveConcept } from '../services/concepts.js';
 
 export const adminRouter = new Router();
 
@@ -223,6 +224,20 @@ adminRouter.get('/api/admin/stats/overview', () => {
 });
 
 adminRouter.get('/api/admin/stats/users', () => adminUserSummary());
+
+// ------------------------------------------------------------------ concept
+/**
+ * Concept giao diện của màn Khám phá. Chỉ một concept được bật tại một thời
+ * điểm, nên đây là một lựa chọn đơn chứ không phải danh sách bật/tắt từng cái.
+ */
+adminRouter.get('/api/admin/concepts', () => conceptBoard());
+
+adminRouter.put('/api/admin/concepts/active', ({ body }) => {
+  const code = String(body.code || '');
+  if (!conceptBoard().some((c) => c.code === code)) throw bad(`Không có concept ${code}`);
+  setActiveConcept(code);
+  return conceptBoard();
+});
 
 // ------------------------------------------------------------------ CRUD
 adminRouter.get('/api/admin/:entity', ({ params, url }) => {

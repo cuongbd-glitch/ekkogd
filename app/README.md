@@ -33,7 +33,7 @@ Các lệnh khác:
 
 ```bash
 npm run dev     # tự khởi động lại khi sửa file
-npm run smoke   # chạy bộ kiểm thử end-to-end (135 kiểm tra)
+npm run smoke   # chạy bộ kiểm thử end-to-end (152 kiểm tra)
 npm run reset   # xoá cơ sở dữ liệu để tạo lại dữ liệu mẫu
 ```
 
@@ -168,7 +168,10 @@ curl "http://127.0.0.1:4321/dev/sso-token?sub=nv-001"
 ### Streak
 
 - Hành động **đầu tiên trong ngày** cộng +1 streak: hoàn thành một bài học, hoặc
-  mở một trong ba chức năng (Lập ngân sách / Mục tiêu tài chính / Ghi chép chi tiêu).
+  **làm một việc** trong ba chức năng — lưu ngân sách, đặt hoặc nạp một mục tiêu,
+  ghi một khoản chi.
+- **Mở một chức năng lên xem thì không được gì**: không XP, không streak, không
+  ghi vào nhật ký hoạt động. Đọc dữ liệu chỉ là đọc dữ liệu.
 - Các lần sau trong cùng ngày không cộng thêm, nên không thể "cày" streak bằng
   cách vào ra một màn hình.
 - Nghỉ một ngày thì chuỗi **bị đóng băng** chứ chưa mất. Đóng băng tối đa **3 ngày**.
@@ -201,8 +204,8 @@ một ô **Phúc lợi** để ghi người học được gì khi đạt cấp 
 | 5 | 🐗 | Heo Đầu Tư | 260 |
 | 6 | 👑 | Heo Thịnh Vượng | 350 |
 
-Nguồn XP: hoàn thành bài học (20 – 40), hoàn thành trọn mô đun (60 – 120), dùng
-một chức năng lần đầu trong ngày (15), và thưởng kèm huy hiệu.
+Nguồn XP: hoàn thành bài học (20 – 40), hoàn thành trọn mô đun (60 – 120), **làm
+một việc** trong một chức năng lần đầu trong ngày (15), và thưởng kèm huy hiệu.
 
 > **Lưu ý về nhịp lên cấp.** Ngưỡng cao nhất là 350 XP, trong khi 18 bài học đã
 > cho 450 XP (chưa kể thưởng mô đun và huy hiệu). Người học sẽ đạt cấp cao nhất
@@ -238,7 +241,74 @@ không trôi lơ lửng trên chữ.
 
 ---
 
-## Bản đồ học tập (Khám phá)
+## Concept giao diện của màn Khám phá
+
+Cùng một lộ trình học có thể được kể bằng nhiều cách. Mỗi cách là một **concept**;
+quản trị viên chọn concept trong Admin portal (**Trò chơi hoá → Concept**) và
+**chỉ một concept được bật tại một thời điểm** — hai người học mở app phải thấy
+cùng một thế giới, nên đây không phải tuỳ chọn của từng người.
+
+| | Concept | Hình hài |
+|---|---|---|
+| 1 | **Đảo trên trời** (mặc định) | Đảo nổi giữa mây, đường nét đứt uốn lượn đi từ dưới lên |
+| 2 | **Quần đảo so le** | Đảo bay xếp so le trái – phải, nhãn bài nằm bên đối diện; cũng đi từ dưới lên |
+
+Đổi concept **không đụng tới nội dung hay tiến độ**: cùng thứ tự bài, cùng luật mở
+khoá, cùng số bài đã học. Server trả về đúng một danh sách chặng cho mọi concept
+(`GET /api/learn/map` kèm trường `concept`), client chỉ chọn bộ vẽ tương ứng —
+`views/explore-sky.js` hoặc `views/explore-islands.js`. Bộ kiểm thử khoá điều này
+lại: đổi concept xong, `entries` phải giống hệt trước đó.
+
+Concept đang bật lưu trong `settings.explore_concept`; giá trị lạ sẽ tự lùi về
+concept 1 thay vì làm hỏng màn hình.
+
+### Bộ hình của concept 2
+
+Toàn bộ hình của concept 2 cắt ra từ **một file duy nhất**: `Đảo.svg` do Ekko vẽ,
+giữ nguyên bản tại `assets/islands/trail/_source.svg`. Script cắt đọc hộp giới hạn
+của từng mảnh rồi xuất ra SVG riêng, chỉ mang theo những rule `.stN` mà mảnh đó
+thực sự dùng:
+
+| Nhóm | File | Dùng làm |
+|---|---|---|
+| Đảo bài học | `island-1` … `island-6` | sáu kiểu đảo, xoay vòng theo thứ tự chặng |
+| Đảo mở đầu | `island-home` | đảo của người học (có rương báu) ở chân trang |
+| Đảo nhỏ | `island-small` | chặng trắc nghiệm cuối mô-đun |
+| Trang trí | `cloud-1` … `cloud-3` | mây nền |
+
+Bộ hình đang dùng nặng **124 KB** SVG vector, nên bản đồ nét ở mọi kích thước màn
+hình.
+
+Script cắt còn xuất ra `plank`, `ladder`, `ladder-long`, `rope`, `island-tree` và
+`coin` — dấu vết của một bản concept 2 trước đó, khi các đảo được nối bằng ván gỗ
+và thang gỗ thật. Bản hiện tại **không dùng những hình này**; chúng nằm lại trong
+thư mục để khỏi phải dò lại toạ độ trong `Đảo.svg` nếu muốn quay về ý tưởng đó.
+
+### Bố cục và đường nối của concept 2
+
+Mỗi chặng là **một hàng chia đôi**: hòn đảo chiếm một bên, nhãn bài chiếm bên còn
+lại, và hai bên đổi chỗ sau mỗi chặng — đọc xuống thấy một lối mòn lượn qua lượn
+lại. Nhãn không bao giờ nằm dưới đảo nên không có chuyện chữ bị hình đè.
+
+Đường nối là **một nét đứt SVG duy nhất**, đo theo vị trí thật của từng đảo sau khi
+layout xong rồi vẽ lại mỗi lần bản đồ đổi chiều cao — cùng cách và cùng class
+`.trail` với concept 1, chứ không phải hình ván gỗ rời bắc giữa hai đảo.
+
+Hai chi tiết khiến mối nối không bị lệch:
+
+- Điểm nối lấy ở **vành cỏ** của mỗi hình (`GROUND`), không lấy giữa hộp ảnh: hộp
+  của đảo có cây thừa gần nửa trên là tán lá và trời.
+- Mỗi hình khai báo sẵn tỉ lệ khung (`RATIO`) nên chiều cao hộp đúng ngay từ khung
+  hình đầu, không phải đợi SVG tải xong mới đo được.
+
+Cùng lý do đó, mỗi chặng được kéo lên hay xuống một khoảng (`--align`) để vành cỏ
+của mọi kiểu đảo rơi vào cùng một đường chuẩn; không có nó thì nhịp giữa các chặng
+lúc sát lúc thưa. Toàn bộ nhịp cố định theo thứ tự chặng, không có yếu tố ngẫu
+nhiên, nên bản đồ giống nhau ở mọi lần mở.
+
+---
+
+## Bản đồ học tập · concept 1 (Đảo trên trời)
 
 Màn Khám phá là **một bản đồ dọc liền mạch**, không còn danh sách mô đun rồi bấm
 vào từng mô đun. Hành trình bắt đầu từ đảo của người chơi ở **dưới cùng** rồi leo
@@ -495,9 +565,14 @@ lỗi thì chữ được trả lại cho người dùng.
 tiêu. Lưu ý `.is-busy` (làm mờ + `pointer-events: none`) **không** thay được cơ
 chế này: nó khoá chuột nhưng không khoá bàn phím.
 
-Màn hình chính đọc số liệu ngân sách và chi tiêu qua `?peek=1`, tức là **không**
-tính là ghé đảo và không cộng streak. Chỉ khi người học thực sự mở một chức năng
-thì phần thưởng trong ngày mới được tính.
+Mọi lệnh đọc (`GET`) của ba chức năng đều **không trả thưởng**: mở màn hình, đổi
+tháng, đổi tab lọc, hay màn hình chính lấy số liệu tóm tắt — tất cả đều miễn phí
+và không đụng tới streak. Chỉ các lệnh ghi (`PUT /api/budget`, `POST /api/goals`,
+`POST /api/goals/:id/deposit`, `POST /api/expenses`) mới đi qua `useFeature`, và
+cũng chỉ lần đầu mỗi ngày cho mỗi chức năng mới trả XP + streak.
+
+Dấu tích ✓ trên đảo chức năng ở màn hình chính vì vậy có nghĩa là "hôm nay đã làm
+gì đó ở đây", không phải "hôm nay đã mở lên xem".
 
 ---
 
@@ -507,6 +582,7 @@ thì phần thưởng trong ngày mới được tính.
 |---|---|
 | Bảng điều khiển | Người hoạt động theo ngày, phân bố cấp độ, bài học phổ biến, mức dùng ba chức năng |
 | Người học | Tiến độ, XP, streak, huy hiệu. **Không** hiển thị chi tiêu, ngân sách hay mục tiêu của cá nhân |
+| Concept | Chọn cách kể chuyện cho màn Khám phá; chỉ một concept được bật, đổi bất cứ lúc nào |
 | Cấp độ | Tên, ngưỡng XP, ảnh đảo, ảnh nhân vật; cảnh báo nếu ngưỡng XP không tăng dần |
 | Huy hiệu | Loại điều kiện, ngưỡng, phạm vi, XP thưởng, bật/tắt |
 | Mô đun & bài học | Cây nội dung, tạo/sửa/xoá, đặt cấp độ mở khoá, xuất bản hoặc để nháp |
@@ -539,6 +615,7 @@ app/
 │   │   ├── progression.js    XP, cấp độ, bộ luật huy hiệu
 │   │   ├── world.js          dữ liệu cho màn hình chính
 │   │   ├── botEngine.js      Ekko bot
+│   │   ├── concepts.js       concept giao diện của màn Khám phá
 │   │   ├── goalTemplates.js  bộ mục tiêu tiết kiệm gợi ý
 │   │   ├── spendingAlerts.js cảnh báo khoản chi bất thường
 │   │   ├── botLog.js         sổ hội thoại dùng chung cho chat và ghi nhanh
@@ -550,7 +627,7 @@ app/
 │   ├── app/                  giao diện người học (trong khung iPhone)
 │   ├── admin/                Admin portal
 │   └── assets/               artwork đảo, nhân vật, mascot, logo, khung máy
-└── test/smoke.js             135 kiểm tra end-to-end
+└── test/smoke.js             152 kiểm tra end-to-end
 ```
 
 Giao diện dùng ES module thuần, không bundler. Màu sắc, khoảng cách, bo góc và

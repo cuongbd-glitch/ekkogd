@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="597 552 108 548">
+  <!-- Cắt từ "Đảo.svg" (nguồn của Ekko) — xem app/public/assets/islands/hex-source.svg -->
+  <defs>
+    <style>
+    .st16 { fill: #c27638; }
+    .st21 { fill: #9b461d; }
+    .st53 { fill: #e28f50; }
+    .st56 { fill: #ea965c; }
+    </style>
+  </defs>
+  <g>
+        <g>
+          <polygon class="st21" points="607.5 1096.2 611.9 1100.6 619.2 1096.2 619.2 580.3 623.6 578.9 619.2 574.4 607.5 574.4 607.5 1096.2"/>
+          <rect class="st16" x="611.9" y="578.9" width="11.7" height="521.8" transform="translate(1235.5905 1679.4835) rotate(-180)"/>
+          <polygon class="st56" points="611.9 578.9 607.5 574.4 619.2 574.4 623.6 578.9 611.9 578.9"/>
+        </g>
+        <g>
+          <polygon class="st21" points="676.2 1074 680.6 1078.5 687.9 1074 687.9 558.1 692.3 556.7 687.9 552.3 676.2 552.3 676.2 1074"/>
+          <rect class="st16" x="680.6" y="556.7" width="11.7" height="521.8" transform="translate(1372.959 1635.1711) rotate(-180)"/>
+          <polygon class="st56" points="680.6 556.7 676.2 552.3 687.9 552.3 692.3 556.7 680.6 556.7"/>
+        </g>
+        <g>
+          <polygon class="st56" points="598.7 1009.1 600.5 1020.7 700.1 1005 702.5 996.2 698.3 993.5 598.7 1009.1"/>
+          <rect class="st16" x="647.8" y="959.4" width="11.7" height="100.8" transform="translate(-242.637 1812.0867) rotate(-98.9197)"/>
+          <polygon class="st21" points="602.9 1011.8 598.7 1009.1 600.5 1020.7 604.7 1023.4 602.9 1011.8"/>
+        </g>
+        <g>
+          <polygon class="st56" points="598.7 1059.1 600.5 1070.6 700.1 1055 702.5 1046.2 698.3 1043.4 598.7 1059.1"/>
+          <rect class="st16" x="647.8" y="1009.4" width="11.7" height="100.8" transform="translate(-292.0072 1869.8098) rotate(-98.9197)"/>
+          <polygon class="st21" points="602.9 1061.8 598.7 1059.1 600.5 1070.6 604.7 1073.4 602.9 1061.8"/>
+        </g>
+        <g>
+          <polygon class="st56" points="598.7 959.1 600.5 970.7 700.1 955 702.5 946.2 698.3 943.5 598.7 959.1"/>
+          <rect class="st16" x="647.8" y="909.4" width="11.7" height="100.8" transform="translate(-193.2678 1754.3624) rotate(-98.9196)"/>
+          <polygon class="st21" points="602.9 961.9 598.7 959.1 600.5 970.7 604.7 973.4 602.9 961.9"/>
+        </g>
+        <g>
+          <polygon class="st53" points="598.7 909.1 600.5 920.7 700.1 905.1 702.5 896.3 698.3 893.5 598.7 909.1"/>
+          <rect class="st16" x="647.8" y="859.4" width="11.7" height="100.8" transform="translate(-143.8965 1696.6404) rotate(-98.9197)"/>
+          <polygon class="st21" points="602.9 911.9 598.7 909.1 600.5 920.7 604.7 923.5 602.9 911.9"/>
+        </g>
+        <g>
+          <polygon class="st56" points="598.7 859.2 600.5 870.7 700.1 855.1 702.5 846.3 698.3 843.5 598.7 859.2"/>
+          <rect class="st16" x="647.8" y="809.5" width="11.7" height="100.8" transform="translate(-94.5263 1638.9173) rotate(-98.9197)"/>
+          <polygon class="st21" points="602.9 861.9 598.7 859.2 600.5 870.7 604.7 873.5 602.9 861.9"/>
+        </g>
+        <g>
+          <polygon class="st56" points="598.7 809.2 600.5 820.8 700.1 805.1 702.5 796.3 698.3 793.6 598.7 809.2"/>
+          <rect class="st16" x="647.8" y="759.5" width="11.7" height="100.8" transform="translate(-45.1562 1581.1942) rotate(-98.9197)"/>
+          <polygon class="st21" points="602.9 811.9 598.7 809.2 600.5 820.8 604.7 823.5 602.9 811.9"/>
+        </g>
+        <g>
+          <polygon class="st56" points="598.7 759.2 600.5 770.8 700.1 755.1 702.5 746.3 698.3 743.6 598.7 759.2"/>
+          <rect class="st16" x="647.8" y="709.5" width="11.7" height="100.8" transform="translate(4.214 1523.4711) rotate(-98.9197)"/>
+          <polygon class="st21" points="602.9 762 598.7 759.2 600.5 770.8 604.7 773.5 602.9 762"/>
+        </g>
+        <g>
+          <polygon class="st56" points="598.7 709.2 600.5 720.8 700.1 705.2 702.5 696.4 698.3 693.6 598.7 709.2"/>
+          <rect class="st16" x="647.8" y="659.6" width="11.7" height="100.8" transform="translate(53.5842 1465.748) rotate(-98.9197)"/>
+          <polygon class="st21" points="602.9 712 598.7 709.2 600.5 720.8 604.7 723.6 602.9 712"/>
+        </g>
+        <g>
+          <polygon class="st56" points="598.7 659.3 600.5 670.8 700.1 655.2 702.5 646.4 698.3 643.6 598.7 659.3"/>
+          <rect class="st16" x="647.8" y="609.6" width="11.7" height="100.8" transform="translate(102.9544 1408.0249) rotate(-98.9197)"/>
+          <polygon class="st21" points="602.9 662 598.7 659.3 600.5 670.8 604.7 673.6 602.9 662"/>
+        </g>
+        <g>
+          <polygon class="st56" points="598.7 609.3 600.5 620.9 700.1 605.2 702.5 596.4 698.3 593.7 598.7 609.3"/>
+          <rect class="st16" x="647.8" y="559.6" width="11.7" height="100.8" transform="translate(152.3246 1350.3018) rotate(-98.9197)"/>
+          <polygon class="st21" points="602.9 612 598.7 609.3 600.5 620.9 604.7 623.6 602.9 612"/>
+        </g>
+        <g>
+          <polygon class="st56" points="596.5 901.8 598.3 913.3 697.9 897.7 700.3 888.9 696.1 886.1 596.5 901.8"/>
+          <rect class="st16" x="645.5" y="852.1" width="11.7" height="100.8" transform="translate(-139.1596 1685.9211) rotate(-98.9197)"/>
+          <polygon class="st21" points="600.7 904.5 596.5 901.8 598.3 913.3 602.5 916.1 600.7 904.5"/>
+        </g>
+      </g>
+</svg>

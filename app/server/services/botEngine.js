@@ -38,7 +38,7 @@ const FAQ = [
   {
     id: 'streak-rule',
     q: ['streak', 'chuoi ngay', 'dong bang', 'mat streak', 'giu chuoi'],
-    a: `Mỗi ngày, hành động đầu tiên của bạn (hoàn thành một bài học hoặc dùng một trong ba chức năng) sẽ cộng +1 streak. Nếu hôm sau bạn không vào, streak sẽ bị **đóng băng** thay vì mất ngay. Streak giữ được tối đa ${MAX_FREEZE_DAYS} ngày đóng băng. Quay lại trong khoảng đó là chuỗi tiếp tục; qua ${MAX_FREEZE_DAYS} ngày mà vẫn không hoạt động thì chuỗi sẽ mất và bắt đầu lại từ 1.`,
+    a: `Mỗi ngày, hành động đầu tiên của bạn (hoàn thành một bài học, hoặc làm một việc trong ba chức năng: ghi một khoản chi, lưu ngân sách, hoặc đặt/nạp một mục tiêu) sẽ cộng +1 streak. Nếu hôm sau bạn không vào, streak sẽ bị **đóng băng** thay vì mất ngay. Streak giữ được tối đa ${MAX_FREEZE_DAYS} ngày đóng băng. Quay lại trong khoảng đó là chuỗi tiếp tục; qua ${MAX_FREEZE_DAYS} ngày mà vẫn không hoạt động thì chuỗi sẽ mất và bắt đầu lại từ 1.`,
   },
   {
     id: 'levels',
@@ -131,7 +131,7 @@ function answerStatus(userId, key) {
 
   if (key === 'streak') {
     const s = streakStatus(userId, dayKey());
-    if (s.count === 0) return { text: 'Chuỗi streak của bạn đang là 0. Hoàn thành một bài học hoặc mở một chức năng bất kỳ hôm nay là bạn có ngay ngày đầu tiên.' };
+    if (s.count === 0) return { text: 'Chuỗi streak của bạn đang là 0. Hoàn thành một bài học, hoặc ghi một khoản chi, lưu ngân sách, hoặc đặt/nạp một mục tiêu hôm nay là bạn có ngay ngày đầu tiên. Chỉ mở màn hình lên xem thì không tính.' };
     if (s.status === 'frozen') {
       return { text: `Chuỗi của bạn đang là **${s.count} ngày** và đang bị đóng băng (${s.frozenDays}/${MAX_FREEZE_DAYS} ngày). Bạn còn **${s.freezeDaysLeft} ngày** để quay lại trước khi mất chuỗi. Học nhanh một bài là cứu được ngay.` };
     }

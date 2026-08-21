@@ -15,7 +15,6 @@ const shiftMonth = (month, delta) => {
 
 export default async function budgetView(ctx, month = ctx.world.today.slice(0, 7)) {
   const data = await api.get(`/api/budget?month=${month}`);
-  await celebrateRewards(data.rewards, { title: 'Ghé đảo Ngân sách', subtitle: 'Mở lần đầu trong ngày' });
 
   const container = el('div');
   const rerender = async (nextMonth = month) => {

@@ -1,6 +1,6 @@
 /** Ghi chép chi tiêu: fast manual entry, plus the same log Ekko bot writes to. */
 import { api, el, guard, mount, relativeDay, singleFlight, toast, vnd, vndShort } from '/shared/client.js';
-import { celebrateRewards, closeSheet, confirmSheet, sheet } from '../ui.js';
+import { closeSheet, confirmSheet, sheet } from '../ui.js';
 
 const RANGES = [
   ['today', 'Hôm nay'],
@@ -20,7 +20,6 @@ export default async function expensesView(ctx) {
   const rerender = async () => mount(container, await body(ctx, rerender, null, range));
 
   const data = await api.get(`/api/expenses?range=${range}`);
-  await celebrateRewards(data.rewards, { title: 'Ghé đảo Ghi chép', subtitle: 'Mở lần đầu trong ngày' });
   mount(container, await body(ctx, rerender, data, range));
   return container;
 }
@@ -170,7 +169,6 @@ function openAdd(ctx, categories, rerender) {
     } else {
       toast(`Đã ghi ${vnd(amount)}`, 'success');
     }
-    await celebrateRewards(result.rewards, { title: 'Ghé đảo Ghi chép' });
     await ctx.refreshWorld();
     rerender();
   });
