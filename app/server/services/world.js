@@ -3,6 +3,7 @@
  * character, the four satellite islands, the HUD numbers and what to do next.
  */
 import { all, get } from '../db.js';
+import { activeConcept } from './concepts.js';
 import { dayKey } from '../lib/time.js';
 import { levelProgress, levels } from './progression.js';
 import { readState, streakStatus, MAX_FREEZE_DAYS } from './streak.js';
@@ -69,6 +70,9 @@ export function buildWorld(userId) {
 
   return {
     today: dayKey(),
+    // Màn chủ đổi hình hài theo concept (concept "lối học" bỏ hẳn mấy hòn đảo),
+    // nên nó cần biết concept ngay từ payload này thay vì gọi thêm một vòng nữa.
+    concept: activeConcept(),
     level: progress.level,
     nextLevel: progress.next,
     levels: levels().map((l) => ({ ...l, unlocked: l.order_index <= levelOrder })),

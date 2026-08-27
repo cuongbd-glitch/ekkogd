@@ -210,6 +210,9 @@ export function toast(message, tone = 'info') {
 
   holdTimer = setTimeout(dismiss, TOAST_HOLD);
   toastHost.append(node);
+  // Trả lại cách đóng sớm: việc chạy nền xong trước 4 giây thì tắt luôn thông báo
+  // "đang chạy…", không để nó nằm lại sau khi mọi thứ đã xong.
+  return dismiss;
 }
 
 /**

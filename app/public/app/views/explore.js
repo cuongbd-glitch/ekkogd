@@ -11,10 +11,12 @@
 import { api } from '/shared/client.js';
 import exploreSky from './explore-sky.js';
 import exploreIslands from './explore-islands.js';
+import explorePath from './explore-path.js';
 
 const RENDERERS = {
   sky: exploreSky,
   islands: exploreIslands,
+  path: explorePath,
 };
 
 export default async function exploreView(ctx) {

@@ -181,7 +181,7 @@ function stopBlock({ entry, position, side, art }, ctx) {
     if (entry.locked) {
       return toast(quiz
         ? 'Học hết bài trong mô đun này để mở phần trắc nghiệm.'
-        : 'Bài học này chưa mở khoá.', 'error');
+        : lockedNote(entry), 'error');
     }
     if (!quiz) return ctx.openLesson(entry.id);
     const module = await api.get(`/api/learn/modules/${encodeURIComponent(entry.moduleSlug)}`);
@@ -213,7 +213,7 @@ function stopBlock({ entry, position, side, art }, ctx) {
 }
 
 /** Bề ngang ảnh đảo so với khung — phải khớp cột đảo trong `.islstop--left/right`. */
-const ART_WIDTH = 0.46;
+const ART_WIDTH = 0.345;
 
 /**
  * Vành cỏ nằm cách đỉnh chặng bao nhiêu, tính theo **bề ngang khung**: hộp ảnh cao
@@ -230,7 +230,7 @@ const BASELINE = groundDepth('island-1');
  * tướng phía trên, làm nhịp giữa các chặng lúc sát lúc thưa.
  *
  * Đơn vị % là theo bề ngang khung, đúng mốc mà lề phần trăm của chặng dùng. Đảo
- * có cây (`island-6`) lệch tới -28%: gần nửa trên hộp của nó là tán lá và trời.
+ * có cây (`island-6`) lệch tới -21%: gần nửa trên hộp của nó là tán lá và trời.
  */
 const alignOffset = (art) => `${((BASELINE - groundDepth(art)) * 100).toFixed(2)}%`;
 
@@ -240,6 +240,11 @@ const islandImage = (name, className = '') => el(`img${className ? `.${className
   alt: '',
   style: { aspectRatio: String(RATIO[name] ?? 1) },
 });
+
+/** Câu nhắc khi bấm vào bài còn khoá — hai lý do khoá cần hai câu khác nhau. */
+const lockedNote = (entry) => (entry.lockReason === 'level'
+  ? 'Mô-đun này mở khoá ở cấp cao hơn.'
+  : 'Học xong bài phía trên đã, rồi bài này mới mở.');
 
 const state = (entry) => (entry.locked ? 'locked' : entry.completed ? 'done' : entry.current ? 'current' : 'open');
 

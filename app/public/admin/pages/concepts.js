@@ -42,6 +42,17 @@ const PREVIEW = {
     el('img.cpreview__isl', { src: '/assets/islands/trail/island-4.svg', alt: '', style: { right: '6%', top: '26%', width: '26%' } }),
     el('img.cpreview__isl', { src: '/assets/islands/trail/island-2.svg', alt: '', style: { left: '8%', top: '-8%', width: '26%' } }),
   ]),
+  /* Concept 3 xem trước bằng chính hình hài của nó: tấm biển mô-đun ở đầu, rồi
+     chuỗi nút tròn lượn qua lại đúng nhịp `SWAY` mà explore-path.js dùng. */
+  path: () => el('div.cpreview.cpreview--path', {}, [
+    el('span.cpreview__unit'),
+    /* Dịch bằng px chứ không phải %: `translateX` phần trăm tính theo bề ngang
+       của chính cái chấm, đúng cái bẫy mà màn thật đã dính. */
+    ...[0, 1, 2, 1, 0].map((sway, i) => el('i.cpreview__dot', {
+      dataset: { state: i === 0 ? 'done' : i === 1 ? 'current' : 'open' },
+      style: { transform: `translateX(${sway * 26}px)` },
+    })),
+  ]),
 };
 
 export default async function conceptsPage(ctx) {

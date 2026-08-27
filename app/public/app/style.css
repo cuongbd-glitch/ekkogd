@@ -564,7 +564,7 @@ body.is-modal .homebar { opacity: 0; }
 
 /* --- đảo của người chơi, mở đầu hành trình --- */
 .islhome { position: relative; display: grid; justify-items: center; gap: var(--spacing-4); }
-.islhome__art { position: relative; z-index: 1; width: 58%; filter: drop-shadow(0 16px 18px color-mix(in srgb, var(--ekko-midnight) 24%, transparent)); }
+.islhome__art { position: relative; z-index: 1; width: 43.5%; filter: drop-shadow(0 16px 18px color-mix(in srgb, var(--ekko-midnight) 24%, transparent)); }
 .islhome__label {
   position: relative; z-index: 3;
   padding: var(--spacing-6) var(--spacing-14);
@@ -610,8 +610,10 @@ body.is-modal .homebar { opacity: 0; }
      không bù thì nhịp giữa các chặng lúc sát lúc thưa. */
   margin-top: calc(var(--spacing-24) + var(--align, 0%));
 }
-.islstop--left { grid-template-columns: 46% 1fr; justify-items: start; }
-.islstop--right { grid-template-columns: 1fr 46%; justify-items: end; }
+/* Cột đảo 34.5% = 75% khổ cũ (46%). Đổi ở đây thì phải đổi `ART_WIDTH` trong
+   explore-islands.js theo, vì độ dịch gióng vành cỏ tính từ con số đó. */
+.islstop--left { grid-template-columns: 34.5% 1fr; justify-items: start; }
+.islstop--right { grid-template-columns: 1fr 34.5%; justify-items: end; }
 .islstop--left .islstop__art { grid-area: 1 / 1; }
 .islstop--left .islstop__meta { grid-area: 1 / 2; }
 .islstop--right .islstop__art { grid-area: 1 / 2; }
@@ -670,6 +672,230 @@ body.is-modal .homebar { opacity: 0; }
 /* --- đảo của người chơi, điểm khởi hành ở dưới cùng --- */
 .maphome { display: grid; justify-items: center; padding: 0 var(--gutter) var(--spacing-8); }
 .maphome img { width: 78%; filter: drop-shadow(0 14px 16px color-mix(in srgb, var(--ekko-midnight) 20%, transparent)); }
+
+/* --------------------------------------------- Khám phá · concept "lối học"
+   Bỏ hình đảo: mỗi chặng là một nút tròn mang icon, lối đi lượn qua lại bằng
+   cách dịch ngang từng nút theo nhịp `--sway` mà explore-path.js đặt. Mô-đun là
+   tấm biển ở đầu nhóm nút của nó. */
+.screen__body--path { padding: 0; }
+
+.pathboard {
+  /* Một bước lượn ngang. Phải là độ dài tuyệt đối: `translateX` tính phần trăm
+     theo bề ngang của **chính cái nút** (66px), không phải bề ngang khung. */
+/* Một bước lượn ngang. Phải đủ nhỏ để nút lệch xa nhất (2 bước) và cái nhãn
+     dưới nó vẫn nằm trong khung. */
+  --path-step: min(14vw, 62px);
+  --dot: 66px;
+  position: relative;
+  min-height: 100%;
+  padding: var(--spacing-16) var(--gutter) calc(var(--spacing-128) + var(--home-h));
+  background: var(--sky-gradient);
+  /* `stretch` chứ không `center`: tấm biển mô-đun phải trải hết bề ngang, còn nút
+     thì tự canh giữa bằng `justify-self` của chính nó. */
+  display: grid; justify-items: stretch; gap: var(--spacing-16);
+}
+
+/* --- khối mô-đun và cái tên ghim ở đầu khối ---
+   Chưa cuộn tới thì tên chỉ là một dòng chữ có gạch hai bên, không nền. Cuộn tới
+   thì nó dính lên đỉnh và có nền màu — `data-active` do explore-path.js đặt, vì
+   CSS không có selector nào cho "đang bị ghim". */
+.pathsection { display: grid; justify-items: stretch; gap: var(--spacing-16); }
+
+.pathsection__head {
+  /* Ghim dưới HUD và chừa đúng 16px, không phải top: 0 — để top: 0 thì nó chui
+     xuống dưới HUD, còn dính sát thì hai thanh nhìn như một khối.
+     +1px là viền dưới của HUD: --hud-height chỉ tính phần thân, chưa tính viền. */
+  position: sticky;
+  top: calc(var(--status-h) + var(--hud-height) + 1px + var(--spacing-16));
+  z-index: 12;
+  display: flex; align-items: center; gap: var(--spacing-12);
+  margin-top: var(--spacing-24);
+  padding: var(--spacing-10) var(--spacing-16);
+  border-radius: var(--radius-16);
+  color: var(--text-secondary);
+  font-size: 14px; font-weight: 600; line-height: 20px;
+  transition: background-color .18s, color .18s;
+}
+.pathsection:first-child .pathsection__head { margin-top: 0; }
+/* Hai vạch kẻ chỉ có ở dạng chữ, khi có nền màu thì bỏ. */
+.pathsection__head::before,
+.pathsection__head::after {
+  content: ""; flex: 1; height: 1px;
+  background: color-mix(in srgb, var(--ekko-midnight) 16%, transparent);
+}
+.pathsection__title { flex: none; }
+.pathsection__lock { display: none; }
+
+.pathsection[data-active="true"] .pathsection__head {
+  background: var(--bg-brand-500); color: var(--text-white);
+  box-shadow: var(--shadow-card);
+}
+.pathsection[data-active="true"][data-locked="true"] .pathsection__head {
+  background: var(--bg-grey-500);
+}
+.pathsection[data-active="true"] .pathsection__head::before,
+.pathsection[data-active="true"] .pathsection__head::after { display: none; }
+.pathsection[data-active="true"] .pathsection__title { flex: 1; font-size: 16px; }
+.pathsection[data-active="true"] .pathsection__lock {
+  display: inline; flex: none;
+  font-size: 12px; font-weight: 500; opacity: .85;
+}
+
+/* --- một chặng trên lối đi --- */
+.pathnode {
+  justify-self: center;
+  /* 12px giữa nút với bong bóng phía trên và nhãn phía dưới. */
+  display: grid; justify-items: center; gap: var(--spacing-12);
+  /* Lượn ngang theo nhịp cố định của explore-path.js, nên bản đồ luôn giống nhau. */
+  transform: translateX(calc(var(--sway, 0) * var(--path-step)));
+}
+.pathnode__seat { position: relative; }
+
+.pathnode__dot {
+  width: var(--dot); height: var(--dot);
+  display: grid; place-items: center;
+  padding: 0; border: none; border-radius: var(--radius-full);
+  background: var(--bg-primary); color: var(--text-brand-500);
+  /* Gờ dày phía dưới cho nút có khối, giống nút bấm chứ không phải cái đĩa dẹt. */
+  box-shadow: 0 5px 0 var(--bg-grey-200), 0 8px 14px color-mix(in srgb, var(--ekko-midnight) 14%, transparent);
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s;
+}
+.pathnode__dot:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--bg-grey-200), 0 3px 8px color-mix(in srgb, var(--ekko-midnight) 14%, transparent);
+}
+
+.pathnode[data-state="done"] .pathnode__dot {
+  background: var(--bg-success-500); color: var(--text-white);
+  box-shadow: 0 5px 0 var(--bg-success-600), 0 8px 14px color-mix(in srgb, var(--ekko-midnight) 16%, transparent);
+}
+.pathnode[data-state="current"] .pathnode__dot {
+  background: var(--bg-brand-500); color: var(--text-white);
+  box-shadow: 0 5px 0 var(--bg-brand-600), 0 10px 18px color-mix(in srgb, var(--ekko-midnight) 22%, transparent);
+}
+.pathnode[data-state="locked"] .pathnode__dot {
+  background: var(--bg-grey-200); color: var(--text-tertiary);
+  box-shadow: 0 5px 0 var(--bg-grey-500);
+  cursor: default;
+}
+/* Nút tính năng dùng cặp màu thương hiệu (nền mực đêm, icon xanh chanh) — cùng
+   cặp mà mốc mô-đun của concept 2 đang dùng. Không mượn màu cảnh báo hay lỗi để
+   trang trí: chúng có nghĩa riêng trong hệ màu. */
+.pathnode--feature .pathnode__dot {
+  background: var(--ekko-midnight); color: var(--ekko-lime);
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--ekko-midnight) 72%, var(--base-black)),
+              0 8px 14px color-mix(in srgb, var(--ekko-midnight) 22%, transparent);
+}
+.pathnode--feature[data-state="done"] .pathnode__dot {
+  /* Đã dùng hôm nay: vẫn là nút thương hiệu, chỉ nhạt đi cho khỏi tranh chú ý. */
+  opacity: .72;
+}
+
+/* Vòng sáng quanh chặng đang học, để mắt bắt được ngay chỗ cần bấm. Nó phồng lên
+   xẹp xuống chậm rãi — đủ để hút mắt mà không giật, và người bật "giảm chuyển
+   động" trong hệ điều hành thì quy tắc chung ở cuối file tắt nó đi. */
+.pathnode[data-state="current"] .pathnode__seat::before {
+  content: "";
+  position: absolute; inset: -8px;
+  border-radius: var(--radius-full);
+  border: 3px solid color-mix(in srgb, var(--bg-brand-500) 45%, transparent);
+  /* Vòng này nằm đè lên nút (nó `absolute`, nút thì không), nên không cho nó nhận
+     chuột — thiếu dòng này là bấm vào bài đang học không ăn, cú bấm rơi vào vòng. */
+  pointer-events: none;
+  /* Nút có gờ dày 5px ở dưới (box-shadow), nên khối nhìn thấy có tâm thấp hơn tâm
+     hộp 2.5px. Không hạ vòng xuống đúng chừng đó thì nó lệch lên trên. */
+  transform: translateY(2.5px);
+  animation: pathnode-pulse 1.9s ease-in-out infinite;
+}
+@keyframes pathnode-pulse {
+  0%, 100% { transform: translateY(2.5px) scale(1); opacity: .75; }
+  50% { transform: translateY(2.5px) scale(1.14); opacity: 1; }
+}
+
+.pathnode__pig {
+  /* Chú heo đứng cạnh nút đang học, không đè lên icon. */
+  position: absolute; left: calc(100% + var(--spacing-8)); bottom: -6px;
+  width: 62px; object-fit: contain;
+  filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ekko-midnight) 28%, transparent));
+  pointer-events: none;
+}
+
+.pathnode__bubble {
+  max-width: 62vw;
+  /* Chỉ bù đúng chiều cao mũi nhọn (6px) — 12px hở tới nút đã do khe lưới lo. */
+  margin-bottom: var(--spacing-6);
+  padding: var(--spacing-6) var(--spacing-12);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--base-white) 95%, transparent);
+  box-shadow: var(--shadow-card);
+  font-size: 12px; font-weight: 600; line-height: 16px; text-align: center;
+}
+.pathnode__bubble { position: relative; }
+/* Mũi nhọn dựng bằng viền, không phải hình vuông xoay 45°: hình xoay thì chiều
+   cao thật là 12 × √2 ÷ 2 — một con số lẻ, canh khoảng cách rất khó; viền cho ra
+   đúng 6px. */
+.pathnode__bubble::after {
+  content: "";
+  position: absolute; left: 50%; top: 100%;
+  width: 0; height: 0;
+  transform: translateX(-50%);
+  border: var(--spacing-6) solid transparent;
+  border-bottom: 0;
+  border-top-color: color-mix(in srgb, var(--base-white) 95%, transparent);
+}
+/* --- thanh icon dọc của các tính năng (chỉ có ở concept này) ---
+   Nằm ngay trên nút Ekko bot và ô ghi nhanh, canh phải theo đúng lề của khung
+   app, nên ba thứ này xếp thành một cột chứ không đè nhau. */
+.pathrail {
+  position: fixed;
+  right: max(var(--gutter), calc(50% - var(--shell-max) / 2 + var(--gutter)));
+  bottom: calc(var(--quick-h) + var(--spacing-16) * 2 + max(env(safe-area-inset-bottom), var(--home-h)));
+  z-index: 43;
+  display: grid; gap: var(--spacing-8);
+}
+.pathrail__btn {
+  /* Bề ngang đúng bằng vòng tròn, chữ tràn ra hai bên — nhờ vậy cột nút thẳng
+     hàng với nút Ekko bot ở đáy thay vì bị nhãn dài đẩy lệch sang trái. */
+  /* min-width: 0 là bắt buộc: ô lưới mặc định không co nhỏ hơn nội dung, nên nhãn
+     dài hơn 54px sẽ nong nút rộng ra và đẩy cả cột lệch khỏi nút Ekko bot. */
+  width: var(--quick-h); min-width: 0;
+  /* Cột đóng cứng bằng bề ngang nút. Để lưới tự co giãn thì cột rộng theo cái nhãn
+     dài nhất, và vòng tròn bị đẩy lệch nửa phần dôi ra — nhãn "Ngân sách" dôi
+     2px là nút đầu lệch 1px so với hai nút dưới. */
+  display: grid; grid-template-columns: minmax(0, 1fr);
+  justify-items: center; gap: var(--spacing-4);
+  padding: 0; border: 0; background: none;
+  cursor: pointer;
+}
+.pathrail__dot {
+  position: relative;
+  /* Cùng cỡ nút Ekko bot ở đáy, để hai thứ nhìn ra cùng một hàng chrome. */
+  width: var(--quick-h); height: var(--quick-h);
+  display: grid; place-items: center;
+  border: 1px solid var(--border-secondary); border-radius: var(--radius-full);
+  background: var(--bg-primary); color: var(--text-brand-500);
+  box-shadow: var(--shadow-float);
+}
+.pathrail__btn:active .pathrail__dot { transform: scale(.94); }
+.pathrail__label {
+  white-space: nowrap;
+  font-size: 11px; font-weight: 600; line-height: 14px; text-align: center;
+  color: var(--text-secondary);
+}
+/* Chấm xanh: hôm nay đã dùng tính năng này rồi. */
+.pathrail__btn[data-used="true"] .pathrail__dot::after {
+  content: "";
+  position: absolute; top: 2px; right: 2px;
+  width: 10px; height: 10px; border-radius: var(--radius-full);
+  background: var(--bg-success-500);
+  border: 2px solid var(--bg-primary);
+}
+
+/* Nút có gờ dày 5px phía dưới, nằm ngoài hộp; cộng thêm chừng đó thì chữ mới
+   cách phần nhìn thấy của nút đúng 12px. */
+.pathnode__caption { margin-top: 5px; max-width: 42vw; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; }
+.pathnode[data-state="locked"] .pathnode__caption { color: var(--text-tertiary); }
 
 /* --------------------------------------------------- mục tiêu tài chính
    Cùng ngôn ngữ với bản đồ học tập: nền trời, thẻ trắng nổi trên nền. Màn hình
@@ -1089,6 +1315,11 @@ textarea.input { height: auto; padding: var(--spacing-12) var(--spacing-16); res
    Ảnh đảo là chính, chú heo của cấp đó nép ở góc dưới: một dòng cho thấy cả hai
    phần thưởng hình ảnh của cấp mà không phải xếp hai ảnh cạnh nhau. */
 .levelart { position: relative; width: 64px; height: 64px; flex: none; }
+/* Concept "lối học" bỏ hình đảo, ô cấp độ chỉ còn chú heo — cho nó cả khung và
+   thêm bóng đổ, không thì chú heo đứng trơ giữa ô trắng. */
+.levelart--pig .levelart__isle {
+  filter: drop-shadow(0 3px 6px color-mix(in srgb, var(--ekko-midnight) 26%, transparent));
+}
 .levelart__isle { width: 100%; height: 100%; object-fit: contain; display: block; }
 .levelart__pig {
   position: absolute; right: -6px; bottom: -4px;
@@ -1276,3 +1507,37 @@ textarea.input { height: auto; padding: var(--spacing-12) var(--spacing-16); res
     transition-duration: .001ms !important;
   }
 }
+
+/* ------------------------------------------------------------ ảnh hoá đơn
+   Chụp hoá đơn hoặc lấy ảnh có sẵn trong máy. Hai nút nằm cạnh nhau vì đây là
+   hai đường vào của cùng một việc, không phải hai việc khác nhau. */
+.receipt__entry { margin-top: var(--spacing-8); }
+.receipt__pick { display: flex; gap: var(--spacing-8); }
+.receipt__pick .btn { flex: 1; }
+
+.receipt { display: grid; gap: var(--spacing-8); justify-items: start; }
+.receipt__img {
+  width: 100%; max-height: 46vh;
+  object-fit: contain;
+  border-radius: var(--radius-16);
+  background: var(--bg-secondary);
+}
+
+/* Ảnh nhỏ trong dòng khoản chi: đủ để nhận ra tờ hoá đơn, bấm vào xem cỡ thật. */
+.row__receipt {
+  width: 34px; height: 34px; flex: none;
+  padding: 0; border: 1px solid var(--border-secondary); border-radius: var(--radius-8);
+  overflow: hidden; background: var(--bg-secondary);
+  cursor: pointer;
+}
+.row__receipt img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* --------------------------------------------- so sánh với hạn mức tháng
+   Nằm trong thẻ tổng của màn Ghi chép: một dòng chữ, một thanh, một dòng số. */
+.gauge { margin-top: var(--spacing-14); display: grid; gap: var(--spacing-6); }
+.gauge__row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-8); }
+.gauge__label { font-size: 13px; font-weight: 600; }
+.gauge__value { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.gauge__value[data-tone="warn"] { color: var(--text-warning); }
+.gauge__value[data-tone="over"] { color: var(--text-error); }
+.gauge__foot { font-size: 12px; color: var(--text-tertiary); }

@@ -20,3 +20,11 @@ Icon?
 # Node (dự án không có dependency, nhưng phòng khi thêm về sau)
 node_modules/
 npm-debug.log*
+
+# Khoá API và cấu hình riêng của từng máy. Tuyệt đối không đưa lên git.
+.env
+.env.*
+!.env.example
+app/.env
+app/.env.*
+!app/.env.example

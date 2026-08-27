@@ -6,14 +6,17 @@
  * khoản chi — mới đi qua `useFeature`, và cũng chỉ lần đầu trong ngày mới trả
  * thưởng. Nhờ vậy không thể cày XP hay streak bằng cách vào ra một màn hình.
  */
+import { readFileSync } from 'node:fs';
 import { all, get, run, tx } from '../db.js';
-import { bad, notFound, Router } from '../lib/http.js';
+import { bad, HttpError, notFound, Router } from '../lib/http.js';
 import { dayKey, endOfMonth, endOfWeek, monthKey, nowIso, startOfMonth, startOfWeek } from '../lib/time.js';
 import { useFeature } from '../services/progression.js';
 import { extractNote, guessCategory, parseAmount } from '../services/nlp.js';
 import { appendMessages, expenseLoggedReply } from '../services/botLog.js';
 import { GOAL_GROUPS, GOAL_PERIODS, templateByCode } from '../services/goalTemplates.js';
 import { alertLine, expenseAlerts } from '../services/spendingAlerts.js';
+import { receiptFile, removeReceipt, saveReceipt, checkReceipt } from '../services/receipts.js';
+import { keyState, readReceipt } from '../services/receiptAI.js';
 
 export const featureRouter = new Router();
 
@@ -256,6 +259,16 @@ export function resolveRange({ range, month } = {}) {
   }
 }
 
+/**
+ * Bản gửi ra client: giấu đường dẫn tệp thật, chỉ đưa link đọc qua route có kiểm
+ * chủ sở hữu. Client không cần biết ảnh nằm ở đâu trên đĩa.
+ */
+const publicExpense = (expense) => {
+  if (!expense) return expense;
+  const { receipt_path: path, ...rest } = expense;
+  return { ...rest, receipt_url: path ? `/api/expenses/${expense.id}/receipt` : null };
+};
+
 export function expensePayload(userId, spec = resolveRange()) {
   const { from, to } = spec;
 
@@ -279,14 +292,48 @@ export function expensePayload(userId, spec = resolveRange()) {
   const total = list.reduce((sum, e) => sum + e.amount, 0);
   const todayTotal = list.filter((e) => e.spent_on === dayKey()).reduce((sum, e) => sum + e.amount, 0);
 
+  // Phần ngân sách lấy thẳng từ chính hàm dựng màn Lập ngân sách, không tự tính
+  // lại: hai màn hình mà tính riêng thì sớm muộn cũng lệch nhau một con số, rồi
+  // người dùng không biết tin màn nào. Và luôn theo **cả tháng**, kể cả khi đang
+  // xem tab Hôm nay — "còn tiêu được bao nhiêu" là câu hỏi của cả tháng.
+
   return {
     ...spec,
     label: EXPENSE_RANGES[spec.range],
     ranges: EXPENSE_RANGES,
-    expenses: list,
+    expenses: list.map(publicExpense),
     byCategory: byCategory.map((c) => ({ ...c, percent: total ? Math.round((c.total / total) * 100) : 0 })),
     categories: categories(),
     totals: { total, today: todayTotal, count: list.length },
+    monthBudget: monthBudgetView(userId, spec.month),
+  };
+}
+
+/**
+ * Ngân sách của tháng, gọn lại vừa đủ cho màn Ghi chép: tổng thu – chi – còn lại,
+ * và từng nhóm đã tiêu bao nhiêu phần ngân sách của nó.
+ */
+function monthBudgetView(userId, month) {
+  const { exists, totals, items } = budgetPayload(userId, month);
+  return {
+    month,
+    exists: exists && totals.planned > 0,
+    income: totals.income,
+    planned: totals.planned,
+    spent: totals.spent,
+    remaining: totals.remaining,
+    percent: totals.percent,
+    items: items.map((i) => ({
+      categoryId: i.category_id,
+      code: i.code,
+      name: i.name,
+      icon: i.icon,
+      color: i.color,
+      planned: i.planned,
+      spent: i.spent,
+      remaining: i.remaining,
+      percent: i.percent,
+    })),
   };
 }
 
@@ -295,8 +342,13 @@ featureRouter.get('/api/expenses', ({ user, url }) => {
   return expensePayload(user.id, spec);
 });
 
-/** Shared by the manual form and by Ekko bot's quick-log flow. */
-export function createExpense(userId, body, source = 'manual') {
+/**
+ * Shared by the manual form and by Ekko bot's quick-log flow.
+ *
+ * Ảnh hoá đơn (nếu có) được ghi **sau** khi có id khoản chi, vì tên tệp mang id đó
+ * — có vậy nhìn thư mục là biết ảnh thuộc khoản nào.
+ */
+export async function createExpense(userId, body, source = 'manual') {
   const amount = positiveAmount(body.amount);
   const category = resolveCategory(body);
   const spentOn = body.spentOn && DAY_RE.test(body.spentOn) ? body.spentOn : dayKey();
@@ -307,9 +359,14 @@ export function createExpense(userId, body, source = 'manual') {
     userId, amount, category?.id ?? null, note, spentOn, source, nowIso(),
   );
   const rewards = useFeature(userId, 'expenses');
-  const expense = get('SELECT * FROM expenses WHERE id = ?', Number(info.lastInsertRowid));
+  const id = Number(info.lastInsertRowid);
+
+  const receiptPath = await saveReceipt(userId, id, body.receipt);
+  if (receiptPath) run('UPDATE expenses SET receipt_path = ? WHERE id = ?', receiptPath, id);
+
+  const expense = get('SELECT * FROM expenses WHERE id = ?', id);
   return {
-    expense,
+    expense: publicExpense(expense),
     category,
     rewards,
     // Khoản chi vẫn được lưu; cảnh báo là lời nhắc, không phải chặn.
@@ -317,8 +374,32 @@ export function createExpense(userId, body, source = 'manual') {
   };
 }
 
-featureRouter.post('/api/expenses', ({ user, body }) => {
-  const created = createExpense(user.id, body, 'manual');
+/**
+ * Đọc ảnh hoá đơn: trả về số tiền và nhóm chi tiêu đoán được, **không ghi gì vào
+ * sổ**. Người dùng vẫn là người bấm lưu — máy đọc sai một con số mà tự ghi luôn
+ * thì còn tệ hơn bắt gõ tay.
+ */
+featureRouter.post('/api/expenses/scan', async ({ body }) => {
+  const key = keyState();
+  if (key === 'missing') {
+    throw new HttpError(503, 'Chưa bật tính năng đọc hoá đơn tự động. Bạn nhập tay giúp nhé.');
+  }
+  if (key === 'invalid') {
+    // Câu này để quản trị viên đọc ra ngay, không phải người học đoán mò.
+    throw new HttpError(503, 'Khoá API trong app/.env chưa hợp lệ — có vẻ vẫn là chỗ điền mẫu. Bạn nhập tay giúp nhé.');
+  }
+  checkReceipt(body.receipt);
+
+  const list = categories();
+  const read = await readReceipt(body.receipt, list.map((c) => ({ code: c.code, name: c.name })))
+    .catch((err) => { throw bad(err.message); });
+
+  const category = list.find((c) => c.code === read.categoryCode) || null;
+  return { ...read, categoryId: category?.id ?? null, categoryName: category?.name ?? null };
+});
+
+featureRouter.post('/api/expenses', async ({ user, body }) => {
+  const created = await createExpense(user.id, body, 'manual');
   return { ...created, ...expensePayload(user.id, resolveRange({ month: created.expense.spent_on.slice(0, 7) })) };
 });
 
@@ -335,7 +416,7 @@ featureRouter.post('/api/expenses', ({ user, body }) => {
  * The expense's own source stays `manual`: the member typed it themselves,
  * parsing is only an input method.
  */
-featureRouter.post('/api/expenses/quick', ({ user, body }) => {
+featureRouter.post('/api/expenses/quick', async ({ user, body }) => {
   const text = String(body.text || '').trim();
   if (!text) throw bad('Bạn chưa nhập gì');
   if (text.length > 200) throw bad('Nội dung quá dài');
@@ -347,7 +428,7 @@ featureRouter.post('/api/expenses/quick', ({ user, body }) => {
 
   const note = extractNote(text);
   const category = guessCategory(note || text, categories());
-  const created = createExpense(user.id, {
+  const created = await createExpense(user.id, {
     amount: parsed.amount,
     categoryId: category?.id,
     note: note || category?.name || null,
@@ -367,9 +448,32 @@ featureRouter.post('/api/expenses/quick', ({ user, body }) => {
   return { ...created, category, ...expensePayload(user.id, resolveRange({ month: created.expense.spent_on.slice(0, 7) })) };
 });
 
+/**
+ * Ảnh hoá đơn. Kiểm chủ sở hữu trước khi đọc tệp — ảnh nằm ngoài `public/` chính
+ * là để bắt buộc đi qua chỗ này.
+ */
+featureRouter.get('/api/expenses/:id/receipt', ({ user, params, res }) => {
+  const expense = get('SELECT * FROM expenses WHERE id = ? AND user_id = ?', Number(params.id), user.id);
+  if (!expense?.receipt_path) throw notFound('Khoản chi này không có ảnh hoá đơn');
+
+  const file = receiptFile(expense.receipt_path);
+  if (!file) throw notFound('Không tìm thấy ảnh hoá đơn');
+
+  const data = readFileSync(file.full);
+  res.writeHead(200, {
+    'content-type': file.type,
+    'content-length': data.length,
+    // Ảnh riêng của từng người: không cho proxy hay CDN nào giữ lại.
+    'cache-control': 'private, max-age=300',
+  });
+  res.end(data);
+  return undefined;
+});
+
 featureRouter.delete('/api/expenses/:id', ({ user, params }) => {
   const expense = get('SELECT * FROM expenses WHERE id = ? AND user_id = ?', Number(params.id), user.id);
   if (!expense) throw notFound('Không tìm thấy khoản chi này');
+  removeReceipt(expense.receipt_path);
   run('DELETE FROM expenses WHERE id = ?', expense.id);
   return expensePayload(user.id, resolveRange({ month: expense.spent_on.slice(0, 7) }));
 });

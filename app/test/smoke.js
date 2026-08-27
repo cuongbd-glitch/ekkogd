@@ -69,7 +69,17 @@ const del = (jar, path) => call(jar, 'DELETE', path);
 // --- server lifecycle ----------------------------------------------------
 function startServer() {
   const child = spawn(process.execPath, [join(ROOT, 'server', 'index.js')], {
-    env: { ...process.env, PORT: String(PORT), EKKO_DATA_DIR: DATA_DIR, NODE_ENV: 'development' },
+    env: {
+      ...process.env,
+      PORT: String(PORT),
+      EKKO_DATA_DIR: DATA_DIR,
+      NODE_ENV: 'development',
+      // Tắt hẳn phần gọi Claude khi chạy kiểm thử: bộ kiểm phải cho cùng một kết
+      // quả trên mọi máy, không phụ thuộc có khoá hay không, và không được tiêu
+      // tiền API mỗi lần chạy. Đặt rỗng chứ không xoá — config.js chỉ nạp .env cho
+      // biến CHƯA có, nên biến rỗng ở đây vẫn thắng tệp .env của máy.
+      ANTHROPIC_API_KEY: '',
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stderr.on('data', (d) => process.stderr.write(`[server] ${d}`));
@@ -183,6 +193,9 @@ async function main() {
       me.json.world.level.order_index === expectedRank.order_index,
       `${me.json.world.progress.xp} XP → cấp ${me.json.world.level.order_index}, chờ ${expectedRank.order_index}`);
     check('Có 4 đảo chức năng', me.json.world.features.length === 4);
+    check('Màn chủ biết concept đang bật để chọn hình hài',
+      typeof me.json.world.concept === 'string' && me.json.world.concept.length > 0,
+      String(me.json.world.concept));
     check('Có bài học tiếp theo', Boolean(me.json.world.learning.next));
 
     section('Học tập');
@@ -216,6 +229,31 @@ async function main() {
         .every((e) => e.locked));
     check('Trắc nghiệm khoá khi chưa học hết mô đun',
       map.json.entries.filter((e) => e.type === 'quiz').every((e) => e.locked === true));
+
+    // Học tuần tự: chưa xong bài trên thì bài dưới còn khoá.
+    const mapLessons = map.json.entries.filter((e) => e.type === 'lesson');
+    check('Chỉ đúng một bài đang mở để học',
+      mapLessons.filter((e) => !e.completed && !e.locked).length === 1,
+      mapLessons.filter((e) => !e.completed && !e.locked).map((e) => e.title).join(' | '));
+    check('Bài chưa tới lượt bị khoá vì thứ tự, không phải vì cấp',
+      mapLessons.some((e) => e.lockReason === 'sequence'),
+      mapLessons.map((e) => e.lockReason).join(','));
+    check('Mỗi bài mang dáng riêng để chọn icon',
+      mapLessons.every((e) => ['story', 'deck', 'practice'].includes(e.shape))
+      && new Set(mapLessons.map((e) => e.shape)).size > 1,
+      [...new Set(mapLessons.map((e) => e.shape))].join(','));
+    check('Bài đã học xong vẫn mở để xem lại',
+      mapLessons.filter((e) => e.completed).every((e) => e.locked === false));
+
+    const gateLesson = mapLessons.find((e) => e.current);
+    const laterLesson = mapLessons.find((e) => e.lockReason === 'sequence');
+    const openLocked = await get('member', `/api/learn/lessons/${laterLesson.id}`);
+    check('Gọi thẳng API cũng không mở được bài chưa tới lượt',
+      openLocked.status === 400, `${openLocked.status} ${openLocked.json?.error || ''}`);
+    const finishLocked = await post('member', `/api/learn/lessons/${laterLesson.id}/complete`, {});
+    check('Không thể học xong bài chưa tới lượt qua API', finishLocked.status === 400);
+    check('Bài đang tới lượt thì mở bình thường',
+      (await get('member', `/api/learn/lessons/${gateLesson.id}`)).status === 200);
     check('Mỗi mô đun trên bản đồ có emoji để làm mốc',
       map.json.entries.filter((e) => e.type === 'module').every((e) => e.emoji));
 
@@ -309,6 +347,27 @@ async function main() {
     check('Trao huy hiệu "Cán đích"',
       (deposit.json.rewards?.badges || []).some((b) => b.code === 'goal_done')
       || (await get('member', '/api/me/badges')).json.all.find((b) => b.code === 'goal_done')?.earned === true);
+
+    // So với hạn mức tháng: câu hỏi "còn tiêu được bao nhiêu" là của cả tháng, nên
+    // con số phải giống nhau ở cả ba tab.
+    const budgetNow = (await get('member', '/api/budget')).json;
+    const forMonth = (await get('member', '/api/expenses?range=month')).json;
+    check('Sổ chi tiêu kèm phần ngân sách tháng',
+      forMonth.monthBudget && forMonth.monthBudget.month === budgetNow.month);
+    check('Ngân sách và số đã tiêu khớp với màn ngân sách',
+      forMonth.monthBudget.planned === budgetNow.totals.planned
+      && forMonth.monthBudget.spent === budgetNow.totals.spent,
+      `sổ ${forMonth.monthBudget.planned}/${forMonth.monthBudget.spent} · ngân sách ${budgetNow.totals.planned}/${budgetNow.totals.spent}`);
+    check('Phần trăm ngân sách tính đúng',
+      forMonth.monthBudget.percent === (forMonth.monthBudget.planned > 0
+        ? Math.round((forMonth.monthBudget.spent / forMonth.monthBudget.planned) * 100)
+        : 0));
+    const forToday = (await get('member', '/api/expenses?range=today')).json;
+    check('Đổi tab không làm đổi phần ngân sách',
+      JSON.stringify(forToday.monthBudget) === JSON.stringify(forMonth.monthBudget));
+
+    check('Thu nhập của tháng cũng được đưa sang',
+      forMonth.monthBudget.income === budgetNow.totals.income);
 
     section('Mục tiêu gợi ý');
     const goalsHome = await get('member', '/api/goals');
@@ -616,7 +675,7 @@ async function main() {
 
     section('Concept màn Khám phá');
     const conceptsBefore = await get('admin', '/api/admin/concepts');
-    check('Có hai concept', conceptsBefore.json.length === 2, String(conceptsBefore.json.length));
+    check('Có ba concept', conceptsBefore.json.length === 3, String(conceptsBefore.json.length));
     check('Chỉ một concept được bật',
       conceptsBefore.json.filter((c) => c.active).length === 1,
       JSON.stringify(conceptsBefore.json.map((c) => `${c.code}:${c.active}`)));
@@ -641,11 +700,70 @@ async function main() {
     check('Concept đang bật không đổi vì một request hỏng',
       (await get('admin', '/api/admin/concepts')).json.find((c) => c.active)?.code === 'islands');
 
+    const toPath = await put('admin', '/api/admin/concepts/active', { code: 'path' });
+    check('Đổi được sang concept lối học nút tròn',
+      toPath.status === 200 && toPath.json.find((c) => c.active)?.code === 'path');
+    const conceptMapPath = (await get('member', '/api/learn/map')).json;
+    check('Concept lối học vẫn dùng chung lộ trình',
+      conceptMapPath.concept === 'path'
+      && JSON.stringify(conceptMapPath.entries) === JSON.stringify(conceptMapBefore.entries));
+
     await put('admin', '/api/admin/concepts/active', { code: 'sky' });
     check('Đổi ngược về concept 1 được', (await get('member', '/api/learn/map')).json.concept === 'sky');
 
     check('Người học không đổi được concept',
       (await put('member', '/api/admin/concepts/active', { code: 'islands' })).status === 403);
+
+    section('Ảnh hoá đơn');
+    // JPEG bé xíu, đủ chữ ký đầu tệp để server nhận là ảnh thật.
+    const jpegBytes = Buffer.from([
+      0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+      0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9,
+    ]);
+    const jpegUrl = `data:image/jpeg;base64,${jpegBytes.toString('base64')}`;
+
+    const withReceipt = await post('member', '/api/expenses', {
+      amount: 42000, note: 'hoá đơn siêu thị', receipt: jpegUrl,
+    });
+    check('Ghi được khoản chi kèm ảnh hoá đơn', withReceipt.status === 200);
+    const receiptId = withReceipt.json.expense.id;
+    check('Khoản chi trả về link xem ảnh, không phải đường dẫn tệp',
+      withReceipt.json.expense.receipt_url === `/api/expenses/${receiptId}/receipt`
+      && withReceipt.json.expense.receipt_path === undefined,
+      JSON.stringify(withReceipt.json.expense.receipt_url));
+
+    const image = await get('member', `/api/expenses/${receiptId}/receipt`);
+    check('Tải lại được đúng ảnh vừa gửi lên',
+      image.status === 200 && image.headers.get('content-type') === 'image/jpeg');
+
+    const notImage = await post('member', '/api/expenses', {
+      amount: 1000, receipt: `data:image/jpeg;base64,${Buffer.from('day khong phai anh').toString('base64')}`,
+    });
+    check('Tệp không phải ảnh bị từ chối dù khai là JPEG', notImage.status === 400);
+
+    const badMime = await post('member', '/api/expenses', { amount: 1000, receipt: 'data:text/html;base64,PGI+' });
+    check('Chỉ nhận JPEG, PNG, WebP', badMime.status === 400);
+
+    // Quản trị viên ở đây là một người **đã đăng nhập** nhưng không phải chủ khoản
+    // chi — đúng tình huống cần chặn.
+    const stranger = await get('admin', `/api/expenses/${receiptId}/receipt`);
+    check('Người khác không xem được ảnh hoá đơn của mình', stranger.status === 404, `status ${stranger.status}`);
+
+    // Đọc hoá đơn bằng AI: bộ kiểm này chạy không có khoá API, nên phải thấy đúng
+    // câu từ chối rõ ràng chứ không phải lỗi 500 khó hiểu.
+    const scanOff = await post('member', '/api/expenses/scan', { receipt: jpegUrl });
+    check('Chưa cấu hình khoá thì đọc hoá đơn báo rõ, không sập',
+      scanOff.status === 503 && /nhập tay/i.test(scanOff.json?.error || ''),
+      `${scanOff.status} ${scanOff.json?.error || ''}`);
+    check('Đường đọc hoá đơn cũng kiểm ảnh trước',
+      (await post('member', '/api/expenses/scan', { receipt: 'data:text/html;base64,PGI+' })).status === 503);
+    check('Đọc hoá đơn không tự ghi khoản chi nào',
+      (await get('member', '/api/expenses')).json.expenses.filter((e) => e.id === receiptId).length === 1);
+
+    await del('member', `/api/expenses/${receiptId}`);
+    check('Xoá khoản chi thì ảnh cũng không còn truy cập được',
+      (await get('member', `/api/expenses/${receiptId}/receipt`)).status === 404);
+
 
     section('Bảo mật');
     const traversal = await fetch(`${BASE}/assets/../../server/config.js`);

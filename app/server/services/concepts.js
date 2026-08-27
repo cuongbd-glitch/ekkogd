@@ -30,6 +30,14 @@ export const CONCEPTS = [
     description: 'Mỗi bài học là một hòn đảo bay, xếp so le trái – phải với nhãn bài nằm ở nửa còn lại của hàng, nên đọc xuống thấy một lối mòn lượn qua lượn lại. Hình đảo cắt từ bộ artwork Đảo.svg của Ekko.',
     highlights: ['Sáu kiểu đảo xoay vòng', 'Đảo so le trái – phải, nhãn nằm bên đối diện', 'Đi từ dưới lên, đảo của bạn ở chân trang'],
   },
+  {
+    code: 'path',
+    order_index: 3,
+    name: 'Lối học nút tròn',
+    tagline: 'Chuỗi nút tròn, mô-đun là tấm biển ở đầu chặng',
+    description: 'Không còn hình đảo: mỗi bài học là một nút tròn mang icon, xếp thành lối đi lượn từ trên xuống. Mô-đun là tấm biển đặt ở đầu nhóm nút của nó. Các tính năng (ghi chép, ngân sách, mục tiêu) chen vào lối đi như một chặng bình thường, nên người học gặp chúng đúng lúc vừa học xong phần lý thuyết liên quan.',
+    highlights: ['Nút tròn mang icon, không dùng hình đảo', 'Mô-đun là tấm biển ở đầu nhóm', 'Tính năng nằm ngay trên lối đi', 'Chú heo đứng cạnh nút đang học'],
+  },
 ];
 
 export const DEFAULT_CONCEPT = CONCEPTS[0].code;

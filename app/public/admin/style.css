@@ -49,7 +49,10 @@ a { color: var(--text-brand-500); }
 
 .sidebar__foot { margin-top: auto; padding: var(--spacing-16) var(--spacing-12) 0; border-top: 1px solid var(--border-secondary); font-size: 12px; color: var(--text-secondary); }
 
-.main { padding: var(--spacing-32) var(--spacing-40) var(--spacing-64); max-width: 1280px; }
+/* Không chặn bề ngang: đây là bảng điều khiển, càng rộng càng xem được nhiều
+   cột. Chặn ở 1280px thì màn 1728px thừa hẳn 200px trống bên phải. Chỉ có đoạn
+   văn xuôi mới cần giới hạn để đọc được (xem `.page-head p`). */
+.main { padding: var(--spacing-32) var(--spacing-40) var(--spacing-64); min-width: 0; }
 .page-head { display: flex; align-items: flex-start; gap: var(--spacing-16); margin-bottom: var(--spacing-24); }
 .page-head h1 { margin: 0 0 4px; font-size: 24px; font-weight: 600; }
 .page-head p { margin: 0; color: var(--text-secondary); font-size: 14px; max-width: 62ch; }
@@ -77,11 +80,46 @@ a { color: var(--text-brand-500); }
 
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-16); }
 @media (max-width: 1080px) { .split { grid-template-columns: 1fr; } }
+/* Màn hẹp: cột điều hướng thành một dải tab cuộn ngang, ghim trên đỉnh.
+   Trước đây nó vẫn xếp dọc và ăn hết màn hình đầu tiên — muốn xem nội dung phải
+   cuộn qua bảy mục, còn trang thì bị kéo rộng ra 844px. */
 @media (max-width: 900px) {
-  .shell { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; }
+  /* `grid-template-rows` phải khai báo rõ: khung có min-height 100dvh, mà lưới thì
+     chia đều phần dư cho các hàng auto — không nói gì thì dải tab bị kéo cao 174px
+     cho "đủ màn hình". */
+  .shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .sidebar {
+    position: sticky; top: 0; z-index: 20;
+    height: auto; min-height: 0;
+    /* Ô lưới mặc định không co nhỏ hơn nội dung, nên thiếu dòng này thì dải tab
+       kéo cả trang rộng ra 836px thay vì tự cuộn ngang trong khung. */
+    min-width: 0;
+    flex-direction: row; flex-wrap: nowrap;
+    gap: var(--spacing-4);
+    padding: var(--spacing-8) var(--spacing-12);
+    border-right: 0; border-bottom: 1px solid var(--border-secondary);
+    overflow-x: auto; overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .sidebar::-webkit-scrollbar { display: none; }
+  .sidebar__brand { padding: 0 var(--spacing-8) 0 0; flex: none; }
+  .sidebar__brand span { display: none; }
   .sidebar__group, .sidebar__foot { display: none; }
-  .main { padding: var(--spacing-20); }
+  .navlink { width: auto; flex: none; white-space: nowrap; padding: var(--spacing-8) var(--spacing-12); }
+  /* Căn giữa theo chiều dọc để các mục cao đúng bằng nội dung, không bị kéo giãn. */
+  .sidebar { align-items: center; }
+  .navlink em { display: none; }
+
+  /* Cùng lý do: bảng dài phải cuộn trong khung, không được kéo giãn cả trang. */
+  .main { min-width: 0; padding: var(--spacing-16) var(--spacing-16) var(--spacing-40); }
+  .page-head { flex-direction: column; gap: var(--spacing-12); }
+  .page-head__actions { margin-left: 0; width: 100%; flex-wrap: wrap; }
+  .toolbar .ekko-input { min-width: 0; flex: 1; }
+
+  /* Bảng nhiều cột thì cho cuộn ngang trong khung của nó. Mặc định của Design
+     System là `hidden`, tức là cột cuối bị cắt mất và không cách nào xem được. */
+  .ekko-table-wrap { overflow-x: auto; }
+  .ekko-table { min-width: 620px; }
 }
 
 .toolbar { display: flex; align-items: center; gap: var(--spacing-8); margin-bottom: var(--spacing-16); flex-wrap: wrap; }
@@ -450,3 +488,20 @@ img.thumb { width: 40px; height: 40px; object-fit: contain; border-radius: var(-
      dẹt ra thành mấy vệt bầu dục. */
   vector-effect: non-scaling-stroke;
 }
+
+/* Xem trước concept "lối học": tấm biển mô-đun + chuỗi nút tròn lượn qua lại. */
+.cpreview--path {
+  display: grid; justify-items: center; align-content: start; gap: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, #eef1ff 0%, #f7f9ff 100%);
+}
+.cpreview__unit {
+  width: 100%; height: 16px; border-radius: 6px;
+  background: var(--bg-brand-500, #3E58F1);
+}
+.cpreview__dot {
+  width: 20px; height: 20px; border-radius: 999px;
+  background: #fff; box-shadow: 0 2px 0 rgba(20, 24, 44, .16);
+}
+.cpreview__dot[data-state="done"] { background: var(--bg-success-500, #2f9e5c); }
+.cpreview__dot[data-state="current"] { background: var(--bg-brand-500, #3E58F1); }

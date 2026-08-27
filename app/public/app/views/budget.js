@@ -41,7 +41,7 @@ async function budgetBody(ctx, month, rerender, preloaded) {
     return el('div', {}, [
       header,
       el('div.empty', {}, [
-        el('img', { src: '/assets/islands/feature-budget.png', alt: '' }),
+        el('img', { src: '/assets/lessons/ban-ngan-sach-dau-tien.svg', alt: '' }),
         el('h3', {}, 'Chưa có ngân sách cho tháng này'),
         el('p.muted', {}, 'Nhập thu nhập rồi chia cho từng nhóm. Quy tắc gợi ý: 50% thiết yếu, 30% mong muốn, 20% cho tương lai.'),
         el('button.btn', { style: { marginTop: '16px' }, onclick: () => openEditor(ctx, data, month, rerender) }, 'Lập ngân sách'),

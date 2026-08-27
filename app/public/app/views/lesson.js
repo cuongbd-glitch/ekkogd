@@ -97,9 +97,9 @@ export async function openLesson(lessonId, ctx) {
 
       if (result.moduleCompleted) {
         await celebrate({
-          title: 'Chinh phục hòn đảo',
-          subtitle: `Bạn đã hoàn thành mô đun "${result.moduleTitle}".`,
-          image: '/assets/islands/module.png',
+          title: 'Hoàn thành mô-đun',
+          subtitle: `Bạn đã học xong "${result.moduleTitle}".`,
+          image: '/assets/lessons/ke-hoach-12-thang.svg',
           stats: [`+${result.moduleRewards?.xp ?? 0} XP`],
           badges: result.moduleRewards?.badges || [],
           levelUp: result.moduleRewards?.levelUp || null,

@@ -48,12 +48,12 @@ const NAV = [
   { route: '/members', icon: '👥', label: 'Người học' },
   { group: 'Trò chơi hoá' },
   { route: '/concepts', icon: '🎨', label: 'Concept' },
-  { route: '/levels', icon: '🏝️', label: 'Cấp độ heo' },
+  { route: '/levels', icon: '🐷', label: 'Cấp độ heo' },
   { route: '/badges', icon: '🏅', label: 'Huy hiệu' },
   { group: 'Nội dung' },
   { route: '/content', icon: '📚', label: 'Mô đun & bài học' },
   { group: 'Chức năng' },
-  { route: '/features', icon: '🧭', label: 'Đảo chức năng' },
+  { route: '/features', icon: '🧭', label: 'Chức năng' },
 ];
 
 let meta = null;

@@ -33,7 +33,7 @@ export const MODULE_EMOJI = {
 
 export const BADGES = [
   { code: 'first_lesson', name: 'Bài học đầu tiên', description: 'Hoàn thành bài học đầu tiên của bạn.', icon: '📖', rule_type: 'lessons_completed', rule_value: 1, xp_reward: 20, order_index: 1 },
-  { code: 'first_module', name: 'Mô đun đầu tiên', description: 'Hoàn thành trọn vẹn một mô đun học tập.', icon: '🏝️', rule_type: 'modules_completed', rule_value: 1, xp_reward: 50, order_index: 2 },
+  { code: 'first_module', name: 'Mô đun đầu tiên', description: 'Hoàn thành trọn vẹn một mô đun học tập.', icon: '🎓', rule_type: 'modules_completed', rule_value: 1, xp_reward: 50, order_index: 2 },
   { code: 'streak_7', name: 'Streak 7 ngày', description: 'Học hoặc dùng một chức năng 7 ngày liên tiếp.', icon: '🔥', rule_type: 'streak_days', rule_value: 7, xp_reward: 70, order_index: 3 },
   { code: 'streak_30', name: 'Streak 30 ngày', description: 'Giữ chuỗi 30 ngày liên tiếp. Rất ít người làm được.', icon: '⚡', rule_type: 'streak_days', rule_value: 30, xp_reward: 300, order_index: 4 },
   { code: 'first_budget', name: 'Ngân sách đầu tiên', description: 'Lập ngân sách tháng đầu tiên của bạn.', icon: '🧾', rule_type: 'budgets_created', rule_value: 1, xp_reward: 40, order_index: 5 },
@@ -42,7 +42,7 @@ export const BADGES = [
   { code: 'expense_10', name: 'Người ghi chép', description: 'Ghi 10 khoản chi tiêu.', icon: '✏️', rule_type: 'expenses_logged', rule_value: 10, xp_reward: 50, order_index: 8 },
   { code: 'expense_50', name: 'Sổ tay dày dặn', description: 'Ghi 50 khoản chi tiêu.', icon: '📚', rule_type: 'expenses_logged', rule_value: 50, xp_reward: 150, order_index: 9 },
   { code: 'bot_friend', name: 'Bạn của Ekko bot', description: 'Trò chuyện với Ekko bot 5 lần.', icon: '🤖', rule_type: 'bot_chats', rule_value: 5, xp_reward: 30, order_index: 10 },
-  { code: 'level_3', name: 'Đảo Kế Hoạch', description: 'Đạt cấp độ 3.', icon: '🗺️', rule_type: 'level_reached', rule_value: 3, xp_reward: 60, order_index: 11 },
+  { code: 'level_3', name: 'Nhà Kế Hoạch', description: 'Đạt cấp độ 3.', icon: '🗺️', rule_type: 'level_reached', rule_value: 3, xp_reward: 60, order_index: 11 },
   { code: 'level_6', name: 'Bậc thầy bầu trời', description: 'Đạt cấp độ 6, cấp cao nhất.', icon: '👑', rule_type: 'level_reached', rule_value: 6, xp_reward: 500, order_index: 12 },
 ];
 
@@ -50,7 +50,7 @@ export const FEATURES = [
   {
     code: 'explore',
     name: 'Khám phá',
-    description: 'Các đảo bài học về tài chính cá nhân, mở khoá dần theo cấp độ.',
+    description: 'Các bài học về tài chính cá nhân, mở khoá dần theo cấp độ.',
     island_image: '/assets/islands/feature-explore.png',
     route: '/app/#/explore',
     order_index: 1,

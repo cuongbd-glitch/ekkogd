@@ -307,6 +307,7 @@ addColumn('bot_messages', 'source', "TEXT NOT NULL DEFAULT 'chat'");
 // Ngưỡng cảnh báo cho MỘT khoản chi trong nhóm. NULL = không cảnh báo theo ngưỡng
 // (tiền nhà, học phí vốn đã lớn); chỉ đặt cho các nhóm chi thường ngày.
 addColumn('categories', 'daily_limit', 'INTEGER');
+addColumn('expenses', 'receipt_path', 'TEXT');
 
 // "Xu" đã bị bỏ khỏi sản phẩm: không có gì tiêu xu, nên nó chỉ là một con số
 // tăng dần vô nghĩa. Bỏ luôn cột để không ai tưởng đây là dữ liệu còn dùng.

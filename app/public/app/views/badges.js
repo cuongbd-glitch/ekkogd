@@ -32,10 +32,10 @@ export default async function badgesView(ctx) {
       el('div.badge-tile__name', {}, badge.name),
     ]))),
 
-    // Chỉ hòn đảo đang đứng. Năm đảo còn lại nằm sau "Xem tất cả" — trang này là
-    // bộ sưu tập, không phải bảng xếp hạng cấp độ.
+    // Chỉ cấp đang đứng. Năm cấp còn lại nằm sau "Xem tất cả" — trang này là bộ
+    // sưu tập, không phải bảng xếp hạng cấp độ.
     el('div.section-title', {}, [
-      'Sáu hòn đảo',
+      levelsTitle(world),
       el('button.linkbtn', { onclick: () => openLevels(world) }, 'Xem tất cả'),
     ]),
     currentLevelCard(world),
@@ -54,7 +54,7 @@ function currentLevelCard(world) {
 
   return el('div.card', {}, [
     el('div', { style: { display: 'flex', gap: '12px', alignItems: 'center' } }, [
-      levelArt(level),
+      levelArt(level, world.concept),
       el('div', { style: { flex: '1' } }, [
         el('div', { style: { fontSize: '15px', fontWeight: '600' } }, levelName(level)),
         el('div.muted', {}, level.perk || `${level.xp_required} XP`),
@@ -65,17 +65,19 @@ function currentLevelCard(world) {
 }
 
 /**
- * Cả sáu đảo trong một bottom sheet, mỗi dòng có ảnh đảo và chú heo của cấp đó —
- * đây là chỗ duy nhất trong app xem được trọn bộ nhân vật.
+ * Cả sáu cấp trong một bottom sheet — đây là chỗ duy nhất trong app xem được trọn
+ * bộ nhân vật.
  */
 function openLevels(world) {
+  const pigOnly = world.concept === 'path';
   sheet({
-    title: 'Sáu hòn đảo',
+    title: levelsTitle(world),
     body: [
-      el('p.muted', { style: { marginTop: '0' } },
-        'Mỗi cấp độ là một hòn đảo và một chú heo riêng. Học bài và dùng ba chức năng để lên cấp.'),
+      el('p.muted', { style: { marginTop: '0' } }, pigOnly
+        ? 'Mỗi cấp độ là một chú heo riêng. Học bài và dùng ba chức năng để lên cấp.'
+        : 'Mỗi cấp độ là một hòn đảo và một chú heo riêng. Học bài và dùng ba chức năng để lên cấp.'),
       ...world.levels.map((level) => el('div.levelrow', { dataset: { locked: String(!level.unlocked) } }, [
-        levelArt(level),
+        levelArt(level, world.concept),
         el('div', { style: { flex: '1', minWidth: '0' } }, [
           el('div', { style: { fontSize: '15px', fontWeight: '600' } }, levelName(level)),
           el('div.muted', {}, level.unlocked ? (level.perk || `${level.xp_required} XP`) : `🔒 Cần ${level.xp_required} XP`),
@@ -88,17 +90,32 @@ function openLevels(world) {
 
 const levelName = (level) => `${level.order_index}. ${level.emoji ? `${level.emoji} ` : ''}${level.name}`;
 
-/** Đảo là ảnh chính, chú heo của cấp đó nép ở góc. */
-const levelArt = (level) => el('div.levelart', {}, [
-  el('img.levelart__isle', { src: level.island_image, alt: '', loading: 'lazy' }),
-  level.character_image
-    ? el('img.levelart__pig', { src: level.character_image, alt: '', loading: 'lazy' })
-    : null,
-]);
+/** Tên của mục cấp độ: concept "lối học" không có hòn đảo nào để mà gọi tên. */
+const levelsTitle = (world) => (world.concept === 'path' ? 'Sáu cấp độ' : 'Sáu hòn đảo');
+
+/**
+ * Đảo là ảnh chính, chú heo của cấp đó nép ở góc — trừ concept "lối học nút tròn":
+ * concept đó bỏ hết hình đảo, nên cấp độ chỉ còn chính chú heo, phóng to lên cho
+ * rõ mặt. Thiếu ảnh heo thì vẫn lùi về ảnh đảo, thà có hình còn hơn ô trống.
+ */
+function levelArt(level, concept) {
+  const pigOnly = concept === 'path' && level.character_image;
+  if (pigOnly) {
+    return el('div.levelart.levelart--pig', {}, [
+      el('img.levelart__isle', { src: level.character_image, alt: '', loading: 'lazy' }),
+    ]);
+  }
+  return el('div.levelart', {}, [
+    el('img.levelart__isle', { src: level.island_image, alt: '', loading: 'lazy' }),
+    level.character_image
+      ? el('img.levelart__pig', { src: level.character_image, alt: '', loading: 'lazy' })
+      : null,
+  ]);
+}
 
 const KIND_LABEL = {
   lesson_completed: ['📖', 'Hoàn thành bài học'],
-  module_completed: ['🏝️', 'Hoàn thành mô đun'],
+  module_completed: ['🎓', 'Hoàn thành mô đun'],
   feature_used: ['🧭', 'Dùng chức năng'],
   badge_awarded: ['🏅', 'Nhận huy hiệu'],
   level_up: ['⬆️', 'Lên cấp'],

@@ -1,4 +1,4 @@
-/** Đảo chức năng: the four islands orbiting the player's home island. */
+/** Bốn chức năng người học dùng hằng ngày, ngoài phần bài học. */
 import { el } from '/shared/client.js';
 import { assetField, modal, numberField, statusToggle, table, tabbed, textAreaField, textField } from '../ui.js';
 import { categoriesPanel } from './categories.js';
@@ -9,13 +9,13 @@ export default async function features(ctx) {
   return el('div', {}, [
     el('div.page-head', {}, [
       el('div', {}, [
-        el('h1', {}, 'Đảo chức năng'),
-        el('p', {}, 'Bốn hòn đảo quanh đảo trung tâm. Mã chức năng gắn với logic trong app nên không nên đổi; tên, mô tả, ảnh và điểm thưởng thì sửa thoải mái.'),
+        el('h1', {}, 'Chức năng'),
+        el('p', {}, 'Bốn chức năng người học dùng hằng ngày. Mã chức năng gắn với logic trong app nên không nên đổi; tên, mô tả, ảnh và điểm thưởng thì sửa thoải mái.'),
       ]),
     ]),
 
     table(
-      [{ label: 'Đảo' }, { label: 'Chức năng' }, { label: 'Mã' }, { label: 'Đường dẫn' }, { label: 'XP mỗi ngày', align: 'right' }, { label: 'Trạng thái' }, { label: '' }],
+      [{ label: 'Ảnh' }, { label: 'Chức năng' }, { label: 'Mã' }, { label: 'Đường dẫn' }, { label: 'XP mỗi ngày', align: 'right' }, { label: 'Trạng thái' }, { label: '' }],
       rows,
       (row) => el('tr', {}, [
         el('td', {}, [row.island_image ? el('img.thumb', { src: row.island_image, alt: '' }) : '—']),
@@ -46,7 +46,7 @@ function edit(ctx, row) {
     name: textField({ label: 'Tên chức năng', value: row.name, required: true }),
     order_index: numberField({ label: 'Thứ tự trên bản đồ', value: row.order_index, hint: '1 = trên trái, 2 = trên phải, 3 = dưới trái, 4 = dưới phải.' }),
     description: textAreaField({ label: 'Mô tả', value: row.description, rows: 2 }),
-    island_image: assetField({ label: 'Ảnh hòn đảo', value: row.island_image, uploader: ctx.uploader }),
+    island_image: assetField({ label: 'Ảnh minh hoạ', value: row.island_image, uploader: ctx.uploader }),
     route: textField({ label: 'Đường dẫn trong app', value: row.route, hint: 'Ví dụ: /app/#/budget' }),
     xp_per_day: numberField({ label: 'XP cho lần dùng đầu tiên mỗi ngày', value: row.xp_per_day }),
   };

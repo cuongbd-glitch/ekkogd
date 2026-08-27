@@ -16,6 +16,32 @@ const currentLevelOrder = (userId) => {
   return level ? level.order_index : 1;
 };
 
+/**
+ * Dáng của một bài học, suy từ các loại khung nó có: có khung tương tác thì đó là
+ * bài bắt tay làm, có slide thì là bài lật thẻ, còn lại là bài kể chuyện. Client
+ * dùng cái này để chọn icon nói **bài học là gì**, thay vì vẽ dấu tích hay ổ khoá.
+ */
+const lessonShape = (kinds) => (kinds.includes('interactive')
+  ? 'practice'
+  : kinds.includes('slide') ? 'deck' : 'story');
+
+/**
+ * Học tuần tự: chỉ bài chưa xong **đầu tiên** mới mở, bài đã xong thì xem lại
+ * thoải mái. Chặn ngay ở đây chứ không chỉ ẩn nút trên bản đồ — nút bấm là gợi ý,
+ * còn luật thì phải nằm ở server, không thì gọi thẳng API là qua mặt được.
+ */
+function requireInOrder(userId, lessonId) {
+  const done = get(
+    "SELECT 1 ok FROM lesson_progress WHERE user_id = ? AND lesson_id = ? AND status = 'completed'",
+    userId, lessonId,
+  );
+  if (done) return;
+
+  const gate = nextLesson(userId, currentLevelOrder(userId));
+  if (gate?.id === lessonId) return;
+  throw bad('Học xong bài phía trên đã, rồi bài này mới mở.');
+}
+
 learnRouter.get('/api/learn/modules', ({ user }) => {
   const levelOrder = currentLevelOrder(user.id);
   return moduleOverview(user.id).map((m) => ({
@@ -35,7 +61,17 @@ learnRouter.get('/api/learn/modules', ({ user }) => {
 learnRouter.get('/api/learn/map', ({ user }) => {
   const levelOrder = currentLevelOrder(user.id);
   const entries = [];
-  let currentTaken = false;
+  // Cửa duy nhất đang mở: bài chưa xong đầu tiên theo đúng thứ tự học. Chưa học
+  // xong bài trên thì bài dưới còn khoá.
+  const gateId = nextLesson(user.id, levelOrder)?.id ?? null;
+  // Bài học gồm những loại khung nào — client lấy đó chọn icon cho chặng. Gom một
+  // lần cho cả bản đồ, không hỏi lại theo từng bài.
+  const shapes = new Map(all(
+    `SELECT l.id, GROUP_CONCAT(DISTINCT f.kind) kinds
+       FROM lessons l LEFT JOIN frames f ON f.lesson_id = l.id
+      WHERE l.is_published = 1
+      GROUP BY l.id`,
+  ).map((r) => [r.id, lessonShape(r.kinds || '')]));
 
   for (const module of all('SELECT * FROM modules WHERE is_published = 1 ORDER BY order_index')) {
     const moduleLocked = module.unlock_level > levelOrder;
@@ -64,9 +100,9 @@ learnRouter.get('/api/learn/map', ({ user }) => {
 
     for (const lesson of lessons) {
       const completed = lesson.status === 'completed';
-      // The pig stands at the first thing the member can actually do next.
-      const current = !completed && !moduleLocked && !currentTaken;
-      if (current) currentTaken = true;
+      // Chú heo đứng ở đúng cái cửa đang mở.
+      const current = !completed && !moduleLocked && lesson.id === gateId;
+      const locked = moduleLocked || (!completed && !current);
 
       entries.push({
         type: 'lesson',
@@ -76,7 +112,12 @@ learnRouter.get('/api/learn/map', ({ user }) => {
         est_minutes: lesson.est_minutes,
         xp_reward: lesson.xp_reward,
         completed,
-        locked: moduleLocked,
+        // 'practice' | 'deck' | 'story' — dáng của bài, để chọn icon cho đúng.
+        shape: shapes.get(lesson.id) || 'story',
+        locked,
+        // Khoá vì chưa tới cấp, hay vì còn bài phía trên chưa học xong — hai lý do
+        // này cần hai câu nhắc khác nhau ở phía app.
+        lockReason: !locked ? null : moduleLocked ? 'level' : 'sequence',
         current,
       });
     }
@@ -209,6 +250,7 @@ learnRouter.get('/api/learn/lessons/:id', ({ user, params }) => {
   if (lesson.unlock_level > currentLevelOrder(user.id)) {
     throw bad(`Bài học này mở khoá ở cấp độ ${lesson.unlock_level}`);
   }
+  requireInOrder(user.id, lesson.id);
 
   const frames = all('SELECT id, order_index, kind, payload FROM frames WHERE lesson_id = ? ORDER BY order_index', lesson.id)
     .map((f) => ({ id: f.id, order_index: f.order_index, kind: f.kind, payload: JSON.parse(f.payload || '{}') }));
@@ -260,6 +302,7 @@ learnRouter.post('/api/learn/lessons/:id/complete', ({ user, params, body }) => 
     Number(params.id),
   );
   if (!lesson) throw notFound('Không tìm thấy bài học này');
+  requireInOrder(user.id, lesson.id);
 
   const existing = get('SELECT * FROM lesson_progress WHERE user_id = ? AND lesson_id = ?', user.id, lesson.id);
   const alreadyCompleted = existing?.status === 'completed';

@@ -25,7 +25,7 @@ export default async function levels(ctx) {
     thresholdWarning(rows),
 
     table(
-      [{ label: '#' }, { label: 'Heo' }, { label: 'Đảo' }, { label: 'Tên' }, { label: 'Min XP' }, { label: 'Phúc lợi' }, { label: '' }],
+      [{ label: '#' }, { label: 'Heo' }, { label: 'Ảnh nền' }, { label: 'Tên' }, { label: 'Min XP' }, { label: 'Phúc lợi' }, { label: '' }],
       rows,
       (row) => el('tr', {}, [
         el('td', {}, String(row.order_index)),
@@ -75,7 +75,7 @@ function edit(ctx, row, rows) {
     xp_required: numberField({ label: 'XP tối thiểu', value: row?.xp_required ?? 0, required: true }),
     perk: textAreaField({ label: 'Phúc lợi', value: row?.perk, rows: 3, placeholder: 'Người học được gì khi đạt cấp này' }),
     character_image: assetField({ label: 'Ảnh nhân vật heo', value: row?.character_image, uploader: ctx.uploader }),
-    island_image: assetField({ label: 'Ảnh hòn đảo', value: row?.island_image, uploader: ctx.uploader }),
+    island_image: assetField({ label: 'Ảnh nền cấp độ', value: row?.island_image, uploader: ctx.uploader }),
   };
 
   modal({

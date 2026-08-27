@@ -1,9 +1,14 @@
 /**
- * The main screen: the player's island in the middle with the pig character,
- * four satellite islands around it, and the HUD numbers above.
+ * Màn chủ. Hình hài của nó phụ thuộc concept đang bật:
+ *
+ * - concept "đảo trên trời" và "quần đảo so le": đảo của người chơi ở giữa, bốn
+ *   đảo chức năng vây quanh, bên dưới là mấy thẻ chuỗi – tiền – tiến độ.
+ * - concept "lối học nút tròn": **màn chủ chính là bản đồ học tập**. Không còn
+ *   hòn đảo nào; các tính năng rút về một thanh icon dọc ở góc phải bên dưới.
  */
 import { api, el, spriteIcon, vnd } from '/shared/client.js';
 import { bar } from '../ui.js';
+import { pathBoard, ICON } from './explore-path.js';
 
 const POSITIONS = ['nw', 'ne', 'sw', 'se'];
 
@@ -21,6 +26,8 @@ function island({ image, label, badge, badgeTone, position, onclick, alt }) {
 
 export default async function worldView(ctx) {
   const world = ctx.world;
+  if (world.concept === 'path') return pathHome(ctx);
+
   const { level, progress, streak, features, learning, badges } = world;
 
   const featureByCode = Object.fromEntries(features.map((f) => [f.code, f]));
@@ -128,6 +135,47 @@ export default async function worldView(ctx) {
       progressCard,
     ]),
   ]);
+}
+
+/**
+ * Màn chủ của concept "lối học nút tròn": bản đồ chiếm trọn màn hình, các tính
+ * năng nằm trong thanh icon dọc ở góc phải bên dưới. Cấp độ, XP và chuỗi vẫn đọc
+ * được ở HUD phía trên, nên bỏ mấy hòn đảo không mất thông tin nào.
+ */
+async function pathHome(ctx) {
+  const map = await api.get('/api/learn/map');
+  return el('div.screen__body.screen__body--path', {}, [
+    pathBoard(ctx, map),
+    featureRail(ctx),
+  ]);
+}
+
+/**
+ * Thanh icon dọc: mỗi tính năng một nút tròn **cùng cỡ nút Ekko bot** ở đáy, kèm
+ * tên ngay bên dưới — một cái icon ví tiền đứng trơ thì không ai đoán ra nó mở
+ * cái gì. Chấm xanh nghĩa là hôm nay đã dùng rồi.
+ *
+ * Nút giữ đúng bề ngang bằng vòng tròn, còn chữ được phép tràn ra hai bên: có vậy
+ * cột nút mới thẳng hàng với nút Ekko bot ở đáy.
+ */
+const RAIL_LABEL = {
+  budget: 'Ngân sách',
+  goals: 'Mục tiêu',
+  expenses: 'Ghi chép',
+};
+
+function featureRail(ctx) {
+  const items = (ctx.world.features || []).filter((f) => f.code !== 'explore');
+  return el('div.pathrail', {}, items.map((feature) => el('button.pathrail__btn', {
+    onclick: () => ctx.navigate(feature.route.replace('/app/#', '')),
+    'aria-label': feature.name,
+    dataset: { used: String(Boolean(feature.usedToday)) },
+  }, [
+    el('span.pathrail__dot', {}, [spriteIcon(ICON[feature.code] || ICON.story, 24)]),
+    // Tên rút gọn cho vừa một dòng; tên đầy đủ vẫn nằm ở aria-label cho trình đọc
+    // màn hình. Tên nào không có trong bảng thì dùng nguyên tên trong Admin.
+    el('span.pathrail__label', {}, RAIL_LABEL[feature.code] || feature.name),
+  ])));
 }
 
 function streakMessage(streak) {

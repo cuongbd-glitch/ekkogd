@@ -241,7 +241,7 @@ export async function respond(userId, rawMessage, { createExpense }) {
     const categories = all('SELECT * FROM categories ORDER BY order_index');
     const note = extractNote(message);
     const category = guessCategory(note || message, categories);
-    const created = createExpense(userId, {
+    const created = await createExpense(userId, {
       amount: amount.amount,
       categoryId: category?.id,
       note: note || category?.name || null,

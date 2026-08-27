@@ -53,7 +53,7 @@ export default async function goalsView(ctx) {
 
     if (!goals.length) {
       return [el('div.empty', {}, [
-        el('img', { src: '/assets/islands/feature-goals.png', alt: '' }),
+        el('img', { src: '/assets/lessons/muc-tieu-tiet-kiem.svg', alt: '' }),
         el('h3', {}, 'Chưa có mục tiêu nào'),
         el('p.muted', {}, 'Mục tiêu đầu tiên nên là một tháng chi phí thiết yếu. Đạt mốc đó rồi mới nâng dần lên ba tháng.'),
         el('button.btn', {

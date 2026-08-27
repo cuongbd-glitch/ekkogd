@@ -1,6 +1,6 @@
 /** Ghi chép chi tiêu: fast manual entry, plus the same log Ekko bot writes to. */
-import { api, el, guard, mount, relativeDay, singleFlight, toast, vnd, vndShort } from '/shared/client.js';
-import { closeSheet, confirmSheet, sheet } from '../ui.js';
+import { api, el, formatDay, guard, mount, relativeDay, singleFlight, toast, vnd, vndShort } from '/shared/client.js';
+import { bar, closeSheet, confirmSheet, sheet } from '../ui.js';
 
 const RANGES = [
   ['today', 'Hôm nay'],
@@ -26,7 +26,7 @@ export default async function expensesView(ctx) {
 
 async function body(ctx, rerender, preloaded, range) {
   const data = preloaded || await api.get(`/api/expenses?range=${range}`);
-  const { expenses, byCategory, totals, categories, label } = data;
+  const { expenses, byCategory, totals, categories, label, monthBudget } = data;
 
   const tabs = el('div.segmented', { role: 'group', 'aria-label': 'Lọc theo thời gian' },
     RANGES.map(([key, text]) => el('button', {
@@ -45,10 +45,16 @@ async function body(ctx, rerender, preloaded, range) {
       el('small', {}, `${totals.count} khoản`),
     ]),
     byCategory.length ? categoryStack(byCategory) : null,
+    budgetGauge(monthBudget, ctx),
   ]);
 
   const quickAdd = el('button.btn.btn--block', { style: { marginTop: '16px' }, onclick: () => openAdd(ctx, categories, rerender) },
     '+ Ghi một khoản chi');
+
+  // Chụp trước rồi mới điền: đứng ở quầy thì chụp cái hoá đơn nhanh hơn là gõ số.
+  const byReceipt = el('div.receipt__entry', {}, [
+    receiptPicker((dataUrl) => scanThenAdd(ctx, categories, rerender, dataUrl)),
+  ]);
 
   const grouped = groupByDay(expenses);
 
@@ -57,6 +63,7 @@ async function body(ctx, rerender, preloaded, range) {
     tabs,
     summary,
     quickAdd,
+    byReceipt,
 
     expenses.length
       ? el('div', {}, grouped.map(([day, list]) => el('div', {}, [
@@ -67,12 +74,52 @@ async function body(ctx, rerender, preloaded, range) {
         el('div.card', { style: { paddingTop: '0' } }, list.map((expense) => expenseRow(expense, rerender))),
       ])))
       : el('div.empty', {}, [
-        el('img', { src: '/assets/islands/feature-expenses.png', alt: '' }),
+        el('img', { src: '/assets/lessons/ghi-chep-3-phut.svg', alt: '' }),
         el('h3', {}, `Chưa có khoản chi nào ${label.toLowerCase()}`),
         el('p.muted', {}, 'Ghi ngay tại thời điểm trả tiền là cách duy nhất giữ được thói quen này.'),
       ]),
   ]);
 }
+
+/**
+ * Ngân sách tháng, đồng bộ với màn Lập ngân sách: cùng con số, cùng cách chia
+ * mức, cùng chữ. Số liệu do server lấy thẳng từ hàm dựng màn ngân sách nên hai
+ * nơi không thể lệch nhau.
+ *
+ * Luôn tính theo **cả tháng**, kể cả khi đang xem tab Hôm nay hay Tuần này —
+ * "còn tiêu được bao nhiêu" là câu hỏi của cả tháng.
+ */
+function budgetGauge(month, ctx) {
+  if (!month) return null;
+
+  if (!month.exists) {
+    return el('div.gauge', {}, [
+      el('div.gauge__row', {}, [
+        el('span.gauge__label', {}, 'Chưa lập ngân sách tháng này'),
+        el('button.linkbtn', { onclick: () => ctx.navigate('/budget') }, 'Lập ngân sách'),
+      ]),
+    ]);
+  }
+
+  const vuot = month.percent > 100;
+  const tone = toneFor(month.percent);
+  return el('div.gauge', {}, [
+    el('div.gauge__row', {}, [
+      el('span.gauge__label', {}, `Đã dùng ${month.percent}% ngân sách tháng`),
+      el('span.gauge__value', { dataset: { tone: tone || 'ok' } }, vuot
+        ? `Vượt ${vnd(-month.remaining)}`
+        : `Còn ${vnd(month.remaining)}`),
+    ]),
+    bar(month.percent, tone),
+    el('div.gauge__foot', {}, [
+      `${vnd(month.spent)} trên ngân sách ${vnd(month.planned)}`,
+      month.income ? ` · thu nhập ${vnd(month.income)}` : '',
+    ].join('')),
+  ]);
+}
+
+/** Cùng ngưỡng màu với màn Lập ngân sách: quá 80% là vàng, quá 100% là đỏ. */
+const toneFor = (percent) => (percent > 100 ? 'over' : percent > 80 ? 'warn' : '');
 
 function categoryStack(byCategory) {
   const top = byCategory.slice(0, 6);
@@ -117,6 +164,15 @@ function expenseRow(expense, rerender) {
         expense.source === 'bot' ? ' · qua Ekko bot' : '',
       ].join('')),
     ]),
+    expense.receipt_url
+      ? el('button.row__receipt', {
+        'aria-label': 'Xem ảnh hoá đơn',
+        onclick: () => sheet({
+          title: 'Ảnh hoá đơn',
+          body: [el('img.receipt__img', { src: expense.receipt_url, alt: 'Ảnh hoá đơn' })],
+        }),
+      }, [el('img', { src: expense.receipt_url, alt: '', loading: 'lazy' })])
+      : null,
     el('span.row__value', {}, vnd(expense.amount)),
     el('button.iconbtn', {
       style: { width: '32px', height: '32px', background: 'transparent', color: 'var(--text-tertiary)' },
@@ -135,15 +191,126 @@ function expenseRow(expense, rerender) {
   ]);
 }
 
-function openAdd(ctx, categories, rerender) {
+/**
+ * Thu nhỏ ảnh ngay trên máy trước khi gửi: ảnh máy ảnh điện thoại thường 3–8 MB,
+ * gửi thẳng thì vừa chậm vừa vượt trần body của server. 1280px là đủ đọc chữ trên
+ * hoá đơn.
+ */
+function shrinkImage(file, max = 1280, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Không đọc được tệp ảnh'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Tệp này không phải ảnh'));
+      img.onload = () => {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = el('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Ô chọn ảnh hoá đơn: **chụp mới** hoặc **lấy ảnh có sẵn trong máy**.
+ *
+ * Hai ô `input[type=file]` riêng chứ không phải một: chỉ ô có `capture` mới mở
+ * thẳng máy ảnh trên điện thoại, còn ô không có `capture` mới cho vào thư viện.
+ * Gộp làm một thì trên một số máy người dùng không vào được thư viện.
+ */
+function receiptPicker(onPick) {
+  const chup = el('input', { type: 'file', accept: 'image/*', capture: 'environment', style: { display: 'none' } });
+  const chon = el('input', { type: 'file', accept: 'image/*', style: { display: 'none' } });
+
+  const handle = async (input) => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      onPick(await shrinkImage(file));
+    } catch (err) {
+      toast(err.message || 'Không đọc được ảnh', 'error');
+    }
+  };
+  chup.addEventListener('change', () => handle(chup));
+  chon.addEventListener('change', () => handle(chon));
+
+  return el('div.receipt__pick', {}, [
+    el('button.btn.btn--ghost', { onclick: () => chup.click() }, ['📷 Chụp hoá đơn']),
+    el('button.btn.btn--ghost', { onclick: () => chon.click() }, ['🖼️ Chọn ảnh có sẵn']),
+    chup,
+    chon,
+  ]);
+}
+
+/**
+ * Gửi ảnh cho máy chủ đọc rồi mở form đã điền sẵn. Đọc được hay không thì form
+ * vẫn mở — hỏng phần đọc tự động không được làm người dùng mất luôn đường ghi tay.
+ */
+/**
+ * Ngày để điền vào form từ ngày đọc được trên hoá đơn.
+ *
+ * Chỉ nhận ngày **trong tháng đang xem**. Sổ chi tiêu chỉ có ba khoảng Hôm nay /
+ * Tuần này / Tháng này, nên một tờ hoá đơn cũ (ảnh chụp lại hoá đơn năm 2022) mà
+ * ghi đúng ngày của nó thì khoản chi biến mất khỏi mọi khoảng xem — người dùng
+ * tưởng app nuốt mất. Ngoài tháng này thì để ngày hôm nay và nói rõ ngày trên hoá
+ * đơn là ngày nào; ô ngày vẫn sửa được nếu họ thật sự muốn ghi lùi.
+ *
+ * @returns {{date: string, receiptDate: string|null}} receiptDate khác null nghĩa là đã phải đổi
+ */
+function dateFromReceipt(read, today) {
+  const found = read?.spentOn;
+  if (!found) return { date: today, receiptDate: null };
+  if (found.slice(0, 7) === today.slice(0, 7) && found <= today) return { date: found, receiptDate: null };
+  return { date: today, receiptDate: found };
+}
+
+async function scanThenAdd(ctx, categories, rerender, dataUrl) {
+  const dismiss = toast('Đang đọc hoá đơn…', 'info');
+  let read = null;
+  try {
+    read = await api.post('/api/expenses/scan', { receipt: dataUrl });
+  } catch (err) {
+    toast(err.message || 'Chưa đọc được hoá đơn, bạn nhập tay nhé', 'warning');
+  } finally {
+    dismiss?.();
+  }
+
+  openAdd(ctx, categories, rerender, dataUrl, read);
+  if (!read?.amount) return;
+
+  const { receiptDate } = dateFromReceipt(read, ctx.world.today);
+  if (receiptDate) {
+    toast({
+      title: `Đọc được ${vnd(read.amount)}`,
+      body: `Hoá đơn đề ngày ${formatDay(receiptDate)} — mình để ngày hôm nay cho bạn thấy được trong sổ. Sửa lại ở ô Ngày chi nếu cần.`,
+    }, 'warning');
+    return;
+  }
+  toast(read.confidence === 'cao'
+    ? `Đọc được ${vnd(read.amount)}. Kiểm lại rồi bấm Lưu nhé.`
+    : `Đọc được ${vnd(read.amount)} nhưng chưa chắc lắm — bạn xem lại giúp.`,
+  read.confidence === 'cao' ? 'success' : 'warning');
+}
+
+function openAdd(ctx, categories, rerender, receipt = null, read = null) {
   const amountInput = el('input.input', {
     type: 'number', inputmode: 'numeric', min: '1000', step: '1000',
     placeholder: 'VD: 35000', autofocus: true,
   });
   const noteInput = el('input.input', { placeholder: 'VD: cà phê sáng', maxlength: '120' });
-  const dateInput = el('input.input', { type: 'date', value: ctx.world.today });
+  const dateInput = el('input.input', { type: 'date', value: dateFromReceipt(read, ctx.world.today).date });
 
-  let picked = categories[0]?.id;
+  if (read?.amount) amountInput.value = String(read.amount);
+  if (read?.note) noteInput.value = read.note;
+
+  let picked = read?.categoryId || categories[0]?.id;
   const chips = el('div.chips', {}, categories.map((category) => el('button.chip', {
     'aria-pressed': String(category.id === picked),
     onclick: (event) => {
@@ -153,6 +320,18 @@ function openAdd(ctx, categories, rerender) {
     },
   }, [category.icon || '📦', category.name])));
 
+  let anh = receipt;
+  const preview = el('div.receipt');
+  const drawReceipt = () => {
+    mount(preview, anh
+      ? [
+        el('img.receipt__img', { src: anh, alt: 'Ảnh hoá đơn' }),
+        el('button.btn.btn--ghost.btn--sm', { onclick: () => { anh = null; drawReceipt(); } }, 'Bỏ ảnh này'),
+      ]
+      : [receiptPicker((dataUrl) => { anh = dataUrl; drawReceipt(); })]);
+  };
+  drawReceipt();
+
   // singleFlight: bấm "Lưu" hai lần liên tiếp không được ghi thành hai khoản.
   const save = singleFlight(async () => {
     const amount = Number(amountInput.value);
@@ -160,6 +339,7 @@ function openAdd(ctx, categories, rerender) {
 
     const result = await guard(() => api.post('/api/expenses', {
       amount, categoryId: picked, note: noteInput.value.trim() || null, spentOn: dateInput.value,
+      receipt: anh,
     }), 'Không ghi được khoản chi');
     if (!result) return;
 
@@ -180,6 +360,7 @@ function openAdd(ctx, categories, rerender) {
       el('div.field', {}, [el('span', {}, 'Nhóm chi tiêu'), chips]),
       el('label.field', {}, [el('span', {}, 'Ghi chú'), noteInput]),
       el('label.field', {}, [el('span', {}, 'Ngày chi'), dateInput]),
+      el('div.field', {}, [el('span', {}, 'Ảnh hoá đơn'), preview]),
       el('button.btn.btn--block', { onclick: save }, 'Lưu'),
     ],
   });

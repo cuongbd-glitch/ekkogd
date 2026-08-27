@@ -85,9 +85,14 @@ function moduleMarker(entry) {
   ]);
 }
 
+/** Câu nhắc khi bấm vào bài còn khoá — hai lý do khoá cần hai câu khác nhau. */
+const lockedNote = (entry) => (entry.lockReason === 'level'
+  ? 'Mô-đun này mở khoá ở cấp cao hơn.'
+  : 'Học xong bài phía trên đã, rồi bài này mới mở.');
+
 function lessonNode(entry, side, ctx, position) {
   const open = () => {
-    if (entry.locked) return toast('Bài học này chưa mở khoá.', 'error');
+    if (entry.locked) return toast(lockedNote(entry), 'error');
     return ctx.openLesson(entry.id);
   };
 

@@ -155,7 +155,8 @@ curl "http://127.0.0.1:4321/dev/sso-token?sub=nv-001"
 | `EKKO_APP_URL` | `https://ekko.vn` | Nơi quay về khi đăng xuất |
 | `EKKO_TZ` | `Asia/Ho_Chi_Minh` | Múi giờ dùng để tính ngày cho streak |
 | `EKKO_DATA_DIR` | `app/data` | Thư mục chứa SQLite |
-| `ANTHROPIC_API_KEY` | trống | Bật chế độ trả lời dự phòng bằng Claude cho Ekko bot |
+| `ANTHROPIC_API_KEY` | trống | Bật trả lời dự phòng bằng Claude cho Ekko bot **và đọc ảnh hoá đơn tự động** |
+| `ANTHROPIC_MODEL` | `claude-opus-5` | Model dùng cho hai việc trên |
 | `NODE_ENV` | `development` | Đặt `production` để tắt `/dev/login` và dữ liệu mẫu |
 
 Ở môi trường thật, **bắt buộc** đặt `EKKO_SSO_SECRET`, `EKKO_SESSION_SECRET` và

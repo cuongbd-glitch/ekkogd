@@ -16,8 +16,7 @@ const i = (title, image, hotspots, intro) => ({ kind: 'interactive', payload: { 
 const q = (question, options) => ({ kind: 'quiz', payload: { question, options } });
 
 const ISLAND = '/assets/islands';
-const PIG = '/assets/levels';
-const BOT = '/assets/mascot';
+const LESSON = '/assets/lessons';
 
 export const MODULES = [
   // ------------------------------------------------------------------ 1
@@ -38,8 +37,8 @@ export const MODULES = [
         frames: [
           t(
             'Câu hỏi khó nhất về tiền',
-            'Thử trả lời nhanh: **tháng trước bạn tiêu bao nhiêu cho ăn uống?**\n\nGần như ai cũng ngập ngừng. Không phải vì bạn tiêu hoang, mà vì tiền rời khỏi ví theo hàng chục lần nhỏ lẻ mà não không ghi nhớ nổi.\n\nChú heo của chúng ta cũng vậy khi mới lên đảo: có lương, có tiêu, nhưng không có bức tranh.',
-            { image: `${PIG}/pig-1.png`, imageAlt: 'Chú heo cầm sổ tay và bút chì', caption: 'Bước đầu tiên luôn là nhìn thấy.' },
+            'Thử trả lời nhanh: **tháng trước bạn tiêu bao nhiêu cho ăn uống?**\n\nGần như ai cũng ngập ngừng. Không phải vì bạn tiêu hoang, mà vì tiền rời khỏi ví theo hàng chục lần nhỏ lẻ mà não không ghi nhớ nổi.\n\nNhiều người cũng vậy khi mới bắt đầu: có lương, có tiêu, nhưng không có bức tranh.',
+            { image: `${LESSON}/tien-di-dau.svg`, imageAlt: 'Chiếc ví với những khoản tiền toả đi nhiều hướng', caption: 'Bước đầu tiên luôn là nhìn thấy.' },
           ),
           t(
             'Ba dòng tiền bạn cần thấy',
@@ -47,7 +46,7 @@ export const MODULES = [
           ),
           i(
             'Chạm vào từng nơi tiền rò rỉ',
-            `${ISLAND}/feature-expenses.png`,
+            `${LESSON}/tien-di-dau.svg`,
             [
               { x: 30, y: 26, label: 'Chi lặt vặt', text: 'Cà phê 30.000đ, gửi xe 5.000đ, nước 15.000đ. Mỗi ngày 50.000đ là 1.500.000đ một tháng.' },
               { x: 68, y: 34, label: 'Mua theo cảm xúc', text: 'Đơn hàng đặt lúc 11 giờ đêm hiếm khi là thứ bạn thực sự cần. Hãy để giỏ hàng qua đêm.' },
@@ -73,12 +72,12 @@ export const MODULES = [
           t(
             'Vì sao mọi người bỏ ghi chép',
             'Không phải vì lười. Vì cách ghi quá nặng.\n\nMở ứng dụng, chọn ví, chọn nhóm, gõ ghi chú, chọn ngày, bấm lưu. Sáu thao tác cho một ly cà phê 30.000đ thì ai cũng bỏ.\n\nQuy tắc duy nhất cần nhớ: **ghi càng nhanh càng bền**.',
-            { image: `${BOT}/bot-5.png`, imageAlt: 'Ekko bot cầm kính lúp soi các thẻ giá' },
+            { image: `${LESSON}/ghi-chep-3-phut.svg`, imageAlt: 'Điện thoại đang ghi khoản chi, bên cạnh là đồng hồ ba phút' },
           ),
           t(
             'Cách nhanh nhất: nhắn cho Ekko bot',
             'Trong app này, bạn chỉ cần nhắn cho Ekko bot đúng một câu như bạn nói với bạn bè:\n\n> cà phê 35k\n\n> ăn trưa 60 nghìn\n\n> grab về nhà 85k\n\nEkko bot đọc số tiền, đoán nhóm chi tiêu và lưu vào sổ. Bạn xác nhận là xong. Ba giây, không phải ba phút.',
-            { image: `${ISLAND}/feature-expenses.png`, imageAlt: 'Đảo Ghi chép chi tiêu', caption: 'Đảo Ghi chép chi tiêu nằm ngay cạnh đảo trung tâm.' },
+            { image: `${LESSON}/ghi-chep-3-phut.svg`, imageAlt: 'Điện thoại đang ghi khoản chi, bên cạnh là đồng hồ ba phút' },
           ),
           t(
             'Ghi khi nào?',
@@ -104,7 +103,7 @@ export const MODULES = [
           ),
           i(
             'Xếp thử vào đúng nhóm',
-            `${ISLAND}/lesson.png`,
+            `${LESSON}/can-va-muon.svg`,
             [
               { x: 50, y: 22, label: 'Cần', text: 'Gạo, tiền trọ, thuốc men, vé xe đi làm, học phí của con. Thiếu là ảnh hưởng ngay tuần này.' },
               { x: 24, y: 55, label: 'Muốn thật', text: 'Đôi giày bạn ngắm ba tháng nay, khoá học tiếng Anh. Đáng chi, nhưng nên có kế hoạch.' },
@@ -115,7 +114,7 @@ export const MODULES = [
           t(
             'Quy tắc 24 giờ',
             'Với mọi khoản "muốn" trên 500.000đ, để nó nằm trong giỏ hàng đúng 24 giờ.\n\nHôm sau đọc lại, phần lớn sẽ tự thấy không cần nữa. Số còn lại là thứ bạn thực sự muốn, và lúc đó mua sẽ thấy vui chứ không thấy hối.\n\nĐây là một trong những mẹo tiết kiệm hiếm hoi không đòi hỏi bạn phải kỷ luật.',
-            { image: `${BOT}/bot-1.png`, imageAlt: 'Ekko bot vui vẻ' },
+            { image: `${LESSON}/can-va-muon.svg`, imageAlt: 'Cái cân hai đĩa: một bên là thứ cần, một bên là thứ muốn' },
           ),
           q('Bạn thấy một chiếc áo giảm giá 40% trên livestream lúc 11 giờ đêm. Nên làm gì?', [
             { text: 'Mua ngay kẻo hết khuyến mãi', correct: false, explain: 'Cảm giác khan hiếm là công cụ bán hàng, không phải lý do tài chính.' },
@@ -132,7 +131,7 @@ export const MODULES = [
     slug: 'lap-ngan-sach',
     title: 'Lập ngân sách hằng tháng',
     summary: 'Từ con số lương về tay đến một bản ngân sách bạn thực sự dùng được, theo quy tắc 50/30/20.',
-    cover_image: `${ISLAND}/feature-budget.png`,
+    cover_image: `${LESSON}/can-va-muon.svg`,
     unlock_level: 2,
     xp_reward: 80,
     lessons: [
@@ -146,7 +145,7 @@ export const MODULES = [
           t(
             'Ngân sách là lời hứa với chính mình',
             'Nhiều người nghe "lập ngân sách" là nghĩ đến cắt giảm, nhịn ăn, không đi chơi. Không phải vậy.\n\nNgân sách chỉ là việc **quyết định trước** tiền sẽ đi đâu, thay vì để cuối tháng nhìn lại và tự hỏi tiền đi đâu mất rồi.\n\nBạn vẫn được đi cà phê. Chỉ khác là bạn biết mình có bao nhiêu cho việc đó.',
-            { image: `${ISLAND}/feature-budget.png`, imageAlt: 'Đảo Lập ngân sách với túi tiền vàng' },
+            { image: `${LESSON}/ngan-sach-khong-an-kieng.svg`, imageAlt: 'Đĩa tròn chia thành các phần chi tiêu, ở giữa là gương mặt cười' },
           ),
           t(
             'Bắt đầu từ con số thật',
@@ -166,7 +165,7 @@ export const MODULES = [
         est_minutes: 4,
         xp_reward: 30,
         frames: [
-          s(`${ISLAND}/feature-budget.png`, '50% thiết yếu · 30% mong muốn · 20% tương lai', 'Sơ đồ quy tắc 50/30/20'),
+          s(`${LESSON}/quy-tac-50-30-20.svg`, '50% thiết yếu · 30% mong muốn · 20% tương lai', 'Sơ đồ quy tắc 50/30/20'),
           t(
             'Ba chiếc hũ',
             '**50% cho nhu cầu thiết yếu** - tiền nhà, điện nước, ăn uống cơ bản, đi lại đi làm, học phí con.\n\n**30% cho mong muốn** - ăn ngoài, giải trí, mua sắm, du lịch.\n\n**20% cho tương lai** - trả nợ và tiết kiệm.\n\nVới lương 10.000.000đ: 5.000.000đ thiết yếu, 3.000.000đ mong muốn, 2.000.000đ cho tương lai.',
@@ -192,11 +191,11 @@ export const MODULES = [
           t(
             'Bốn bước, làm một lần trong tháng',
             '**Bước 1.** Nhập thu nhập thực nhận trong tháng.\n\n**Bước 2.** Điền các khoản cố định trước: nhà, điện nước, học phí. Đây là phần bạn biết chắc.\n\n**Bước 3.** Chia phần còn lại cho các nhóm linh hoạt dựa trên số liệu tháng trước.\n\n**Bước 4.** Đặt phần tiết kiệm **trước**, không phải phần còn thừa. Đây là điểm khác biệt lớn nhất giữa người tiết kiệm được và người không.',
-            { image: `${PIG}/pig-3.png`, imageAlt: 'Chú heo ở cấp độ 3' },
+            { image: `${LESSON}/ban-ngan-sach-dau-tien.svg`, imageAlt: 'Bản ngân sách với các dòng nhóm chi và dấu tích hoàn thành' },
           ),
           t(
             'Theo dõi trong tháng',
-            'Đảo Lập ngân sách sẽ hiển thị từng nhóm với một thanh tiến độ: đã tiêu bao nhiêu trên hạn mức bạn đặt.\n\nKhi một nhóm chạm 80%, bạn thấy ngay và còn kịp điều chỉnh. Khi vượt 100%, hãy lấy phần bù từ nhóm mong muốn chứ đừng lấy từ phần tiết kiệm.\n\nMỗi ngày bạn mở mục này lần đầu, chuỗi streak của bạn cũng được cộng thêm một ngày.',
+            'Màn Lập ngân sách sẽ hiển thị từng nhóm với một thanh tiến độ: đã tiêu bao nhiêu trên hạn mức bạn đặt.\n\nKhi một nhóm chạm 80%, bạn thấy ngay và còn kịp điều chỉnh. Khi vượt 100%, hãy lấy phần bù từ nhóm mong muốn chứ đừng lấy từ phần tiết kiệm.\n\nMỗi ngày bạn mở mục này lần đầu, chuỗi streak của bạn cũng được cộng thêm một ngày.',
           ),
           q('Nên đặt khoản tiết kiệm vào lúc nào trong tháng?', [
             { text: 'Cuối tháng, với phần tiền còn dư', correct: false, explain: 'Cách này gần như luôn dẫn đến việc không còn gì để tiết kiệm.' },
@@ -213,7 +212,7 @@ export const MODULES = [
     slug: 'quy-du-phong-va-muc-tieu',
     title: 'Quỹ dự phòng và mục tiêu tiết kiệm',
     summary: 'Xây tấm đệm an toàn trước, rồi mới đến những mục tiêu bạn thực sự mong muốn.',
-    cover_image: `${ISLAND}/feature-goals.png`,
+    cover_image: `${LESSON}/ban-ngan-sach-dau-tien.svg`,
     unlock_level: 3,
     xp_reward: 80,
     lessons: [
@@ -227,7 +226,7 @@ export const MODULES = [
           t(
             'Vì sao đây là việc đầu tiên',
             'Xe hỏng 2.000.000đ. Con ốm phải nhập viện. Công ty giảm giờ làm.\n\nNếu không có khoản dự phòng, mỗi sự cố như vậy đều biến thành một khoản vay. Và khoản vay lãi cao là thứ kéo lùi tài chính của bạn nhiều năm.\n\nQuỹ khẩn cấp không làm bạn giàu lên. Nó giữ cho bạn không nghèo đi vì những chuyện ngoài ý muốn.',
-            { image: `${PIG}/pig-4.png`, imageAlt: 'Chú heo ở cấp độ 4' },
+            { image: `${LESSON}/quy-khan-cap.svg`, imageAlt: 'Chiếc ô che cho hai chồng tiền tiết kiệm' },
           ),
           t(
             'Cần bao nhiêu và để ở đâu',
@@ -235,13 +234,13 @@ export const MODULES = [
           ),
           i(
             'Ba mức của quỹ dự phòng',
-            `${ISLAND}/level-4.png`,
+            `${LESSON}/quy-khan-cap.svg`,
             [
               { x: 50, y: 24, label: 'Mức 3: sáu tháng', text: 'Dành cho người thu nhập theo mùa vụ, làm tự do, hoặc là lao động chính duy nhất trong nhà.' },
               { x: 30, y: 48, label: 'Mức 2: ba tháng', text: 'Mức tiêu chuẩn. Đủ để bạn tìm việc mới mà không phải nhận vội một công việc tệ.' },
               { x: 66, y: 66, label: 'Mức 1: một tháng', text: 'Bắt đầu từ đây. Chỉ cần đủ chi phí thiết yếu một tháng là bạn đã an toàn hơn hẳn.' },
             ],
-            'Leo từ chân đảo lên đỉnh. Chạm vào từng mức.',
+            'Đi từ mức thấp nhất lên cao nhất. Chạm vào từng mức.',
           ),
           q('Bạn chi thiết yếu khoảng 6.000.000đ mỗi tháng và chưa có khoản dự phòng nào. Mục tiêu hợp lý để bắt đầu là gì?', [
             { text: '36.000.000đ cho đủ 6 tháng', correct: false, explain: 'Mục tiêu đúng nhưng quá xa để bắt đầu, dễ bỏ cuộc trong tháng đầu.' },
@@ -260,7 +259,7 @@ export const MODULES = [
           t(
             'Từ mong muốn thành mục tiêu',
             '"Muốn tiết kiệm nhiều hơn" không phải mục tiêu. Không có con số, không có hạn, nên không có cách biết mình đang thắng hay thua.\n\nĐổi thành: **"Tiết kiệm 20.000.000đ mua xe máy trước tháng 6 năm sau."**\n\nGiờ nó chia được: 20.000.000đ trong 10 tháng là 2.000.000đ mỗi tháng, tức khoảng 67.000đ mỗi ngày. Con số hằng ngày mới là thứ bạn thực sự quyết định được.',
-            { image: `${ISLAND}/feature-goals.png`, imageAlt: 'Đảo Mục tiêu tài chính' },
+            { image: `${LESSON}/muc-tieu-tiet-kiem.svg`, imageAlt: 'Mũi tên cắm trúng hồng tâm, bên cạnh là chồng tiền' },
           ),
           t(
             'Ba mục tiêu là tối đa',
@@ -283,7 +282,7 @@ export const MODULES = [
           t(
             'Đừng dựa vào ý chí',
             'Ý chí là nguồn lực có hạn và nó cạn vào cuối ngày, đúng lúc bạn dễ tiêu tiền nhất.\n\nGiải pháp là bỏ ý chí ra khỏi phương trình: đặt lệnh chuyển tiền tự động sang tài khoản tiết kiệm vào **đúng ngày lương về**.\n\nTiền chưa kịp nằm trong tài khoản chi tiêu thì bạn không có cảm giác mất nó.',
-            { image: `${BOT}/bot-1.png`, imageAlt: 'Ekko bot thích thú' },
+            { image: `${LESSON}/tiet-kiem-tu-chay.svg`, imageAlt: 'Két sắt với mũi tên vòng lặp tự động chuyển tiền vào' },
           ),
           t(
             'Bắt đầu nhỏ đến mức buồn cười',
@@ -304,7 +303,7 @@ export const MODULES = [
     slug: 'no-va-ung-luong',
     title: 'Nợ và ứng lương thông minh',
     summary: 'Hiểu lãi suất thật, phân biệt nợ tốt với nợ xấu, và dùng ứng lương như một công cụ thay vì một cái bẫy.',
-    cover_image: `${ISLAND}/lesson.png`,
+    cover_image: `${LESSON}/tiet-kiem-tu-chay.svg`,
     unlock_level: 4,
     xp_reward: 90,
     lessons: [
@@ -318,7 +317,7 @@ export const MODULES = [
           t(
             'Một câu hỏi để phân loại',
             '**Khoản vay này có làm tăng khả năng kiếm tiền hoặc giá trị tài sản của tôi không?**\n\nCó: vay học nghề, vay mua xe để đi làm, vay mua nhà ở. Đây là nợ tốt, miễn là khoản trả hằng tháng nằm trong khả năng.\n\nKhông: vay để mua điện thoại đời mới, vay để đi du lịch, vay để trả một khoản vay khác. Đây là nợ xấu, và nhóm cuối cùng là dấu hiệu nguy hiểm nhất.',
-            { image: `${PIG}/pig-5.png`, imageAlt: 'Chú heo ở cấp độ 5' },
+            { image: `${LESSON}/no-tot-no-xau.svg`, imageAlt: 'Hai tấm thẻ: một đường đi lên màu xanh, một đường đi xuống màu đỏ' },
           ),
           t(
             'Nhìn vào lãi suất thật',
@@ -338,7 +337,7 @@ export const MODULES = [
         est_minutes: 4,
         xp_reward: 35,
         frames: [
-          s(`${ISLAND}/level-6.png`, 'Lãi sinh ra lãi. Thời gian là biến số mạnh nhất.', 'Đảo Thịnh Vượng nhìn từ trên cao'),
+          s(`${LESSON}/lai-kep.svg`, 'Lãi sinh ra lãi. Thời gian là biến số mạnh nhất.', 'Các cột tiền cao dần theo đường cong lãi kép'),
           t(
             'Con số làm bạn bất ngờ',
             'Gửi 2.000.000đ mỗi tháng, lãi suất 6% một năm:\n\nSau 5 năm: khoảng **140.000.000đ**\n\nSau 10 năm: khoảng **328.000.000đ**\n\nSau 20 năm: khoảng **924.000.000đ**\n\nTrong 20 năm bạn chỉ bỏ vào 480.000.000đ. Gần một nửa số cuối là do lãi sinh ra lãi. Thời gian làm phần việc nặng nhất, không phải số tiền.',
@@ -364,7 +363,7 @@ export const MODULES = [
           t(
             'Ứng lương khác vay tiền',
             'Khi bạn ứng lương qua Ekko, bạn nhận trước phần lương **bạn đã làm ra** trong tháng này. Đó không phải khoản vay từ một bên thứ ba, và không có lãi suất kiểu tín dụng.\n\nGiá trị lớn nhất của nó là thay thế những lựa chọn tệ hơn: vay nóng, vay app lãi cao, hoặc mua trả góp lãi ẩn.',
-            { image: `${BOT}/ekko-bot.png`, imageAlt: 'Ekko bot' },
+            { image: `${LESSON}/ung-luong-dung-cach.svg`, imageAlt: 'Tờ lịch tháng với một ngày được đánh dấu' },
           ),
           t(
             'Ba câu hỏi trước khi ứng',
@@ -385,7 +384,7 @@ export const MODULES = [
     slug: 'bao-ve-va-dau-tu',
     title: 'Bảo vệ và đầu tư',
     summary: 'Bảo hiểm cơ bản, những bước đầu tư đầu tiên, và cách nhận ra một lời mời lừa đảo.',
-    cover_image: `${ISLAND}/level-4.png`,
+    cover_image: `${LESSON}/ung-luong-dung-cach.svg`,
     unlock_level: 5,
     xp_reward: 90,
     lessons: [
@@ -403,7 +402,7 @@ export const MODULES = [
           t(
             'Hai lỗi thường gặp',
             '**Lỗi một: mua bảo hiểm nhân thọ như một kênh đầu tư.** Sản phẩm kết hợp bảo vệ và đầu tư thường kém ở cả hai vai. Nếu cần bảo vệ, mua sản phẩm bảo vệ thuần. Nếu cần đầu tư, đầu tư riêng.\n\n**Lỗi hai: mua khi chưa có quỹ khẩn cấp.** Nhiều người phải huỷ hợp đồng giữa chừng vì không đóng nổi phí, và mất phần lớn số đã đóng.',
-            { image: `${BOT}/bot-5.png`, imageAlt: 'Ekko bot soi các thẻ giá' },
+            { image: `${LESSON}/bao-hiem-mua-gi-truoc.svg`, imageAlt: 'Tấm khiên có dấu chữ thập bảo vệ' },
           ),
           q('Bạn làm tự do, chưa có bảo hiểm nào và chưa có quỹ dự phòng. Nên làm gì trước?', [
             { text: 'Mua bảo hiểm nhân thọ có tích luỹ', correct: false, explain: 'Chi phí cao và rủi ro phải huỷ giữa chừng khi chưa có quỹ dự phòng.' },
@@ -422,7 +421,7 @@ export const MODULES = [
           t(
             'Ba điều kiện, không thiếu cái nào',
             '**1. Đã có quỹ khẩn cấp ít nhất 3 tháng.**\n\n**2. Đã trả hết nợ lãi trên 15% một năm.**\n\n**3. Số tiền đầu tư là tiền bạn không cần đến trong 3 năm tới.**\n\nThiếu một trong ba, bạn sẽ phải bán ra đúng lúc thị trường xuống, và đó là cách phổ biến nhất để mất tiền.',
-            { image: `${PIG}/pig-6.png`, imageAlt: 'Chú heo ở cấp độ 6' },
+            { image: `${LESSON}/dau-tu-so-nho.svg`, imageAlt: 'Mầm cây mọc lên từ chồng đồng xu' },
           ),
           t(
             'Bắt đầu ở đâu',
@@ -444,7 +443,7 @@ export const MODULES = [
         frames: [
           i(
             'Bốn dấu hiệu cảnh báo',
-            `${ISLAND}/feature-goals.png`,
+            `${LESSON}/bay-lua-dao.svg`,
             [
               { x: 46, y: 20, label: 'Lợi nhuận cam kết cao', text: 'Hứa 20-30% mỗi tháng, hoặc "cam kết không lỗ". Không có khoản đầu tư hợp pháp nào cam kết được điều này.' },
               { x: 26, y: 46, label: 'Giục gấp', text: '"Chỉ còn hôm nay", "suất cuối cùng". Áp lực thời gian tồn tại để bạn không kịp kiểm tra.' },
@@ -472,7 +471,7 @@ export const MODULES = [
     slug: 'lam-chu-tai-chinh-dai-han',
     title: 'Làm chủ tài chính dài hạn',
     summary: 'Ghép mọi thứ đã học thành một hệ thống chạy được trong nhiều năm.',
-    cover_image: `${ISLAND}/level-6.png`,
+    cover_image: `${LESSON}/bay-lua-dao.svg`,
     unlock_level: 6,
     xp_reward: 120,
     lessons: [
@@ -486,7 +485,7 @@ export const MODULES = [
           t(
             'Bốn con số của năm',
             '**1. Thu nhập mục tiêu** - bạn muốn thu nhập tháng cuối năm là bao nhiêu.\n\n**2. Tỷ lệ tiết kiệm** - phần trăm thu nhập bạn giữ lại, không phải số tiền tuyệt đối.\n\n**3. Số dư quỹ khẩn cấp** - bao nhiêu tháng chi phí vào cuối năm.\n\n**4. Tổng nợ** - con số này phải nhỏ hơn đầu năm.\n\nBốn con số này quan trọng hơn mọi bảng tính chi tiết. Viết chúng ra và xem lại mỗi ba tháng.',
-            { image: `${ISLAND}/level-6.png`, imageAlt: 'Đảo Thịnh Vượng' },
+            { image: `${LESSON}/ke-hoach-12-thang.svg`, imageAlt: 'Mười hai ô tháng nối nhau thành một lộ trình' },
           ),
           t(
             'Xem lại mỗi quý, không phải mỗi ngày',
@@ -509,7 +508,7 @@ export const MODULES = [
           t(
             'Trần của việc tiết kiệm',
             'Bạn chỉ có thể cắt giảm đến một mức nào đó. Không ai giảm chi tiêu xuống dưới 0.\n\nNhưng phía tăng thu nhập thì không có trần.\n\nĐiều này không có nghĩa là bỏ ngân sách. Nghĩa là khi bạn đã kiểm soát được chi tiêu, năng lượng tiếp theo nên dồn vào phía thu nhập.',
-            { image: `${BOT}/bot-1.png`, imageAlt: 'Ekko bot' },
+            { image: `${LESSON}/tang-thu-nhap.svg`, imageAlt: 'Các cột thu nhập cao dần, kèm dấu cộng' },
           ),
           t(
             'Ba hướng thực tế',
@@ -529,15 +528,15 @@ export const MODULES = [
         est_minutes: 4,
         xp_reward: 40,
         frames: [
-          s(`${ISLAND}/level-6.png`, 'Người bắt đầu sớm hơn 10 năm thường về đích trước, dù bỏ vào ít tiền hơn.', 'Đảo Thịnh Vượng'),
+          s(`${LESSON}/nghi-huu-tu-hom-nay.svg`, 'Người bắt đầu sớm hơn 10 năm thường về đích trước, dù bỏ vào ít tiền hơn.', 'Đường thời gian với các chồng tiền lớn dần'),
           t(
             'Hai người bạn',
             'Hùng bắt đầu để dành 2.000.000đ mỗi tháng từ năm 25 tuổi, và dừng lại sau 10 năm.\n\nNam bắt đầu ở tuổi 35, cũng 2.000.000đ mỗi tháng, và làm liên tục 25 năm đến khi 60.\n\nVới lãi 7% một năm, đến tuổi 60 Hùng thường vẫn nhiều hơn Nam, dù chỉ bỏ vào 240 triệu so với 600 triệu của Nam.\n\nKhác biệt duy nhất là **thời gian tiền được ở trong đó**. Đây là lý do câu trả lời cho "khi nào nên bắt đầu" luôn là hôm nay.',
           ),
           t(
             'Ba việc làm trong tuần này',
-            '**1. Kiểm tra bạn đã đóng bảo hiểm xã hội đủ và đúng chưa.** Đây là nền lương hưu của bạn và nhiều người không kiểm tra bao giờ.\n\n**2. Đặt một lệnh chuyển tiền tự động**, dù chỉ 200.000đ mỗi tháng.\n\n**3. Viết ra con số bạn cần mỗi tháng khi nghỉ hưu.** Chỉ cần ước lượng thô. Có một con số vẫn tốt hơn không có gì.\n\nBạn đã đi hết hành trình sáu hòn đảo. Phần còn lại là giữ chuỗi streak của mình.',
-            { image: `${PIG}/pig-6.png`, imageAlt: 'Chú heo ở cấp độ 6' },
+            '**1. Kiểm tra bạn đã đóng bảo hiểm xã hội đủ và đúng chưa.** Đây là nền lương hưu của bạn và nhiều người không kiểm tra bao giờ.\n\n**2. Đặt một lệnh chuyển tiền tự động**, dù chỉ 200.000đ mỗi tháng.\n\n**3. Viết ra con số bạn cần mỗi tháng khi nghỉ hưu.** Chỉ cần ước lượng thô. Có một con số vẫn tốt hơn không có gì.\n\nBạn đã đi hết sáu mô-đun của chương trình. Phần còn lại là giữ chuỗi streak của mình.',
+            { image: `${LESSON}/nghi-huu-tu-hom-nay.svg`, imageAlt: 'Đường thời gian với các chồng tiền lớn dần về phía mặt trời' },
           ),
           q('Vì sao bắt đầu tiết kiệm sớm lại quan trọng đến vậy?', [
             { text: 'Vì lãi suất khi còn trẻ thường cao hơn', correct: false, explain: 'Lãi suất không phụ thuộc vào tuổi của bạn.' },

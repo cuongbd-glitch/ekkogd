@@ -67,7 +67,7 @@ export function celebrate({ title, subtitle, image, stats = [], badges = [], lev
       stats.length ? el('div.reward__stats', {}, stats.map((s) => el('span.pill', {}, s))) : null,
       levelUp
         ? el('div.reward__badge', {}, [
-          el('span', {}, levelUp.emoji || '🏝️'),
+          el('span', {}, levelUp.emoji || '🎉'),
           el('div', {}, [el('b', {}, `Lên cấp: ${levelUp.name}`), el('small', {}, levelUp.perk || '')]),
         ])
         : null,

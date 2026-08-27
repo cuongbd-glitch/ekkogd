@@ -90,7 +90,7 @@ function renderHud() {
 
   mount(hudNode,
     // The island map is the hub, so every other screen needs one tap back to it.
-    atHome ? null : el('button.hud__back', { onclick: () => navigate('/'), 'aria-label': 'Về đảo của bạn' }, '←'),
+    atHome ? null : el('button.hud__back', { onclick: () => navigate('/'), 'aria-label': 'Về trang chủ' }, '←'),
     el('button.hud__level', { onclick: () => navigate('/badges'), 'aria-label': 'Xem tiến độ và huy hiệu' }, [
       el('span.hud__avatar', {}, [el('img', { src: level?.character_image || '/assets/levels/pig-1.png', alt: '' })]),
       el('span.hud__meta', {}, [
