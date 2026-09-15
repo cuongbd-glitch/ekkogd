@@ -16,6 +16,7 @@
  * hộp của đảo có cây gần nửa trên là tán lá và trời.
  */
 import { api, el, toast } from '/shared/client.js';
+import { t } from '../i18n.js';
 import { openModuleQuiz } from './quiz.js';
 
 const ART = '/assets/islands/trail';
@@ -105,7 +106,7 @@ export default function exploreIslands(ctx, { entries }) {
   const track = el('div.isltrack', {}, [home, ...nodes]);
   const board = el('div.islboard', {}, [
     svg,
-    el('div.skyhead', {}, [el('span.skyhead__pill', {}, 'Khám phá · Quần đảo')]),
+    el('div.skyhead', {}, [el('span.skyhead__pill', {}, t('Khám phá · Quần đảo'))]),
     ...CLOUDS.map((cloud, i) => el(`img.islcloud.islcloud--${i + 1}`, { src: `${ART}/${cloud}.svg`, alt: '', loading: 'lazy' })),
     track,
   ]);
@@ -160,7 +161,7 @@ function drawTrail(board, svg, path, stops) {
 function homeIsland(ctx) {
   const node = el('div.islhome', { dataset: { art: 'island-home' } }, [
     islandImage('island-home', 'islhome__art'),
-    el('span.islhome__label', {}, ctx.world.level?.name || 'Đảo của bạn'),
+    el('span.islhome__label', {}, ctx.world.level?.name || t('Đảo của bạn')),
   ]);
   node.style.setProperty('--ground', String(GROUND['island-home']));
   return node;
@@ -171,7 +172,7 @@ const moduleTag = (module) => el('div.islmodule', { dataset: { locked: String(mo
     el('span.islmodule__tag', {}, `MÔ-ĐUN ${module.order_index}`),
     el('span.islmodule__title', {}, [module.emoji ? `${module.emoji} ` : '', module.title]),
   ]),
-  module.locked ? el('div.islmodule__locked', {}, `🔒 Mở khoá ở cấp ${module.unlock_level}`) : null,
+  module.locked ? el('div.islmodule__locked', {}, `🔒 ${t('Mở khoá ở cấp {n}', { n: module.unlock_level })}`) : null,
 ]);
 
 function stopBlock({ entry, position, side, art }, ctx) {
@@ -180,7 +181,7 @@ function stopBlock({ entry, position, side, art }, ctx) {
   const open = async () => {
     if (entry.locked) {
       return toast(quiz
-        ? 'Học hết bài trong mô đun này để mở phần trắc nghiệm.'
+        ? t('Học hết bài trong mô đun này để mở phần trắc nghiệm.')
         : lockedNote(entry), 'error');
     }
     if (!quiz) return ctx.openLesson(entry.id);
@@ -190,15 +191,15 @@ function stopBlock({ entry, position, side, art }, ctx) {
 
   const node = el(`div.islstop.islstop--${side}`, { dataset: { state: state(entry), art, link: 'none' } }, [
     el('div.islstop__art', {}, [
-      el('button', { onclick: open, 'aria-label': quiz ? `Trắc nghiệm mô-đun ${entry.moduleOrder}` : entry.title }, [
+      el('button', { onclick: open, 'aria-label': quiz ? t('Trắc nghiệm · Mô-đun {n}', { n: entry.moduleOrder }) : entry.title }, [
         islandImage(art),
       ]),
       el('span.islstop__num', {}, entry.locked ? '🔒' : entry.completed ? '✓' : quiz ? '?' : String(position)),
-      entry.current ? el('img.islstop__pig', { src: '/assets/levels/pig-1.png', alt: 'Bạn đang ở đây' }) : null,
+      entry.current ? el('img.islstop__pig', { src: '/assets/levels/pig-1.png', alt: t('Bạn đang ở đây') }) : null,
     ]),
 
     el('div.islstop__meta', {}, [
-      el('button.islstop__title', { onclick: open }, quiz ? `Trắc nghiệm · Mô-đun ${entry.moduleOrder}` : entry.title),
+      el('button.islstop__title', { onclick: open }, quiz ? t('Trắc nghiệm · Mô-đun {n}', { n: entry.moduleOrder }) : entry.title),
       el('span.islstop__sub', {}, quiz
         ? (entry.result ? `${entry.result.correct}/${entry.result.total} đúng` : `${entry.total} câu`)
         : `${entry.est_minutes} phút`),
@@ -243,8 +244,8 @@ const islandImage = (name, className = '') => el(`img${className ? `.${className
 
 /** Câu nhắc khi bấm vào bài còn khoá — hai lý do khoá cần hai câu khác nhau. */
 const lockedNote = (entry) => (entry.lockReason === 'level'
-  ? 'Mô-đun này mở khoá ở cấp cao hơn.'
-  : 'Học xong bài phía trên đã, rồi bài này mới mở.');
+  ? t('Mô-đun này mở khoá ở cấp cao hơn.')
+  : t('Học xong bài phía trên đã, rồi bài này mới mở.'));
 
 const state = (entry) => (entry.locked ? 'locked' : entry.completed ? 'done' : entry.current ? 'current' : 'open');
 

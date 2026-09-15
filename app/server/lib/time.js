@@ -54,6 +54,19 @@ export function endOfMonth(key) {
 export const nowIso = () => new Date().toISOString();
 
 /** Vietnamese dong formatting, e.g. 12.000.000d */
-export function formatVnd(amount) {
-  return `${Math.round(Number(amount) || 0).toLocaleString('vi-VN')}đ`;
+export function formatVnd(amount, lang = 'vi') {
+  // Tiền vẫn là VNĐ ở cả hai ngôn ngữ; chỉ dấu phân cách nghìn đổi theo tiếng.
+  const locale = lang === 'en' ? 'en-US' : 'vi-VN';
+  return `${Math.round(Number(amount) || 0).toLocaleString(locale)}đ`;
+}
+
+/** "2026-09" → "Tháng 9/2026" hoặc "September 2026". */
+export function formatMonth(month, lang = 'vi') {
+  const [y, m] = String(month || '').split('-');
+  if (!y || !m) return String(month || '');
+  if (lang === 'en') {
+    return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+      .format(new Date(Date.UTC(Number(y), Number(m) - 1, 1)));
+  }
+  return `Tháng ${Number(m)}/${y}`;
 }

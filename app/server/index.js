@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { currentUser, requireAdmin, requireUser } from './auth.js';
 import { HttpError, readJson, sendJson, serveStatic } from './lib/http.js';
+import { langOf, translate } from './i18n/index.js';
 import { seed, listSeedTables } from './seed/index.js';
 import { adminRouter } from './routes/admin.js';
 import { botRouter } from './routes/bot.js';
@@ -66,7 +67,10 @@ const server = createServer(async (req, res) => {
 
       const result = await match.handler(ctx);
       if (res.writableEnded) return undefined; // handler wrote its own response (redirects)
-      return sendJson(res, 200, result ?? { ok: true });
+      // Một chỗ duy nhất dịch nội dung: app người dùng gửi `x-lang`, Admin thì
+      // không, nên Admin luôn thấy bản gốc tiếng Việt đang được biên tập.
+      const lang = auth === 'admin' ? 'vi' : langOf(req);
+      return sendJson(res, 200, translate(result ?? { ok: true }, lang));
     }
 
     // Static assets and the two SPA shells.
@@ -84,7 +88,8 @@ const server = createServer(async (req, res) => {
     return sendJson(res, 404, { error: 'Không tìm thấy đường dẫn này' });
   } catch (err) {
     if (err instanceof HttpError) {
-      return sendJson(res, err.status, { error: err.message, details: err.details ?? null });
+      return sendJson(res, err.status,
+        translate({ error: err.message, details: err.details ?? null }, langOf(req)));
     }
     console.error(`[${req.method} ${pathname}]`, err);
     return sendJson(res, 500, { error: 'Có lỗi xảy ra ở máy chủ' });

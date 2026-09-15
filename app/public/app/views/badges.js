@@ -1,6 +1,7 @@
 /** Bộ sưu tập: badges, the six islands, and recent activity. */
 import { api, el, formatDay } from '/shared/client.js';
 import { sheet } from '../ui.js';
+import { t } from '../i18n.js';
 
 export default async function badgesView(ctx) {
   const [board, activity] = await Promise.all([
@@ -10,10 +11,10 @@ export default async function badgesView(ctx) {
   const world = ctx.world;
 
   return el('div', {}, [
-    el('div', { style: { fontSize: '17px', fontWeight: '600', marginBottom: '4px' } }, 'Bộ sưu tập của bạn'),
-    el('p.muted', { style: { marginTop: '0' } }, `${board.earned}/${board.total} huy hiệu · cấp ${world.level?.order_index ?? 1}/6`),
+    el('div', { style: { fontSize: '17px', fontWeight: '600', marginBottom: '4px' } }, t('Bộ sưu tập của bạn')),
+    el('p.muted', { style: { marginTop: '0' } }, t('{got}/{total} huy hiệu · cấp {level}/6', { got: board.earned, total: board.total, level: world.level?.order_index ?? 1 })),
 
-    el('div.section-title', {}, ['Huy hiệu']),
+    el('div.section-title', {}, [t('Huy hiệu')]),
     el('div.badge-grid', {}, board.all.map((badge) => el('button.badge-tile', {
       dataset: { earned: String(badge.earned) },
       onclick: () => sheet({
@@ -22,9 +23,9 @@ export default async function badgesView(ctx) {
           el('div', { style: { textAlign: 'center', fontSize: '52px', lineHeight: '64px', filter: badge.earned ? 'none' : 'grayscale(1)', opacity: badge.earned ? '1' : '.45' } }, badge.icon || '🏅'),
           el('p', { style: { textAlign: 'center' } }, badge.description || ''),
           el('p.muted', { style: { textAlign: 'center' } }, badge.earned
-            ? `Đã nhận ngày ${formatDay(badge.awarded_at?.slice(0, 10))}`
-            : `Điều kiện: ${ruleText(badge)}`),
-          badge.xp_reward ? el('p.muted', { style: { textAlign: 'center' } }, `Thưởng ${badge.xp_reward} XP`) : null,
+            ? t('Đã nhận ngày {day}', { day: formatDay(badge.awarded_at?.slice(0, 10)) })
+            : t('Điều kiện: {rule}', { rule: ruleText(badge) })),
+          badge.xp_reward ? el('p.muted', { style: { textAlign: 'center' } }, t('Thưởng {xp} XP', { xp: badge.xp_reward })) : null,
         ],
       }),
     }, [
@@ -36,14 +37,14 @@ export default async function badgesView(ctx) {
     // sưu tập, không phải bảng xếp hạng cấp độ.
     el('div.section-title', {}, [
       levelsTitle(world),
-      el('button.linkbtn', { onclick: () => openLevels(world) }, 'Xem tất cả'),
+      el('button.linkbtn', { onclick: () => openLevels(world) }, t('Xem tất cả')),
     ]),
     currentLevelCard(world),
 
-    el('div.section-title', {}, ['Hoạt động gần đây']),
+    el('div.section-title', {}, [t('Hoạt động gần đây')]),
     activity.length
       ? el('div.card', { style: { paddingTop: '0' } }, activity.map(activityRow))
-      : el('p.muted', {}, 'Chưa có hoạt động nào được ghi lại.'),
+      : el('p.muted', {}, t('Chưa có hoạt động nào được ghi lại.')),
   ]);
 }
 
@@ -59,7 +60,7 @@ function currentLevelCard(world) {
         el('div', { style: { fontSize: '15px', fontWeight: '600' } }, levelName(level)),
         el('div.muted', {}, level.perk || `${level.xp_required} XP`),
       ]),
-      el('span.pill', {}, 'Đang ở đây'),
+      el('span.pill', {}, t('Đang ở đây')),
     ]),
   ]);
 }
@@ -74,15 +75,15 @@ function openLevels(world) {
     title: levelsTitle(world),
     body: [
       el('p.muted', { style: { marginTop: '0' } }, pigOnly
-        ? 'Mỗi cấp độ là một chú heo riêng. Học bài và dùng ba chức năng để lên cấp.'
-        : 'Mỗi cấp độ là một hòn đảo và một chú heo riêng. Học bài và dùng ba chức năng để lên cấp.'),
+        ? t('Mỗi cấp độ là một chú heo riêng. Học bài và dùng ba chức năng để lên cấp.')
+        : t('Mỗi cấp độ là một hòn đảo và một chú heo riêng. Học bài và dùng ba chức năng để lên cấp.')),
       ...world.levels.map((level) => el('div.levelrow', { dataset: { locked: String(!level.unlocked) } }, [
         levelArt(level, world.concept),
         el('div', { style: { flex: '1', minWidth: '0' } }, [
           el('div', { style: { fontSize: '15px', fontWeight: '600' } }, levelName(level)),
-          el('div.muted', {}, level.unlocked ? (level.perk || `${level.xp_required} XP`) : `🔒 Cần ${level.xp_required} XP`),
+          el('div.muted', {}, level.unlocked ? (level.perk || `${level.xp_required} XP`) : t('🔒 Cần {xp} XP', { xp: level.xp_required })),
         ]),
-        level.id === world.level?.id ? el('span.pill', {}, 'Đang ở đây') : null,
+        level.id === world.level?.id ? el('span.pill', {}, t('Đang ở đây')) : null,
       ])),
     ],
   });
@@ -91,7 +92,7 @@ function openLevels(world) {
 const levelName = (level) => `${level.order_index}. ${level.emoji ? `${level.emoji} ` : ''}${level.name}`;
 
 /** Tên của mục cấp độ: concept "lối học" không có hòn đảo nào để mà gọi tên. */
-const levelsTitle = (world) => (world.concept === 'path' ? 'Sáu cấp độ' : 'Sáu hòn đảo');
+const levelsTitle = (world) => (world.concept === 'path' ? t('Sáu cấp độ') : t('Sáu hòn đảo'));
 
 /**
  * Đảo là ảnh chính, chú heo của cấp đó nép ở góc — trừ concept "lối học nút tròn":
@@ -128,11 +129,14 @@ const FEATURE_LABEL = {
   explore: 'Khám phá',
 };
 
+const featureLabel = (code) => (FEATURE_LABEL[code] ? t(FEATURE_LABEL[code]) : '');
+
 function activityRow(entry) {
-  const [icon, label] = KIND_LABEL[entry.kind] || ['•', entry.kind];
+  const [icon, kind] = KIND_LABEL[entry.kind] || ['•', entry.kind];
+  const label = KIND_LABEL[entry.kind] ? t(kind) : kind;
   const detail = entry.meta?.title
     || entry.meta?.name
-    || FEATURE_LABEL[entry.ref]
+    || featureLabel(entry.ref)
     || '';
 
   return el('div.row', {}, [
@@ -146,19 +150,20 @@ function activityRow(entry) {
 }
 
 function ruleText(badge) {
+  const n = badge.rule_value;
   const map = {
-    lessons_completed: `hoàn thành ${badge.rule_value} bài học`,
-    modules_completed: `hoàn thành ${badge.rule_value} mô đun`,
-    streak_days: `giữ chuỗi ${badge.rule_value} ngày`,
-    feature_used: `dùng chức năng ${FEATURE_LABEL[badge.rule_target] || ''} ${badge.rule_value} lần`,
-    expenses_logged: `ghi ${badge.rule_value} khoản chi tiêu`,
-    goals_created: `tạo ${badge.rule_value} mục tiêu`,
-    goals_completed: `hoàn thành ${badge.rule_value} mục tiêu`,
-    budgets_created: `lập ${badge.rule_value} ngân sách`,
-    level_reached: `đạt cấp độ ${badge.rule_value}`,
-    xp_total: `tích luỹ ${badge.rule_value} XP`,
-    bot_chats: `trò chuyện với Ekko bot ${badge.rule_value} lần`,
+    lessons_completed: t('hoàn thành {n} bài học', { n }),
+    modules_completed: t('hoàn thành {n} mô đun', { n }),
+    streak_days: t('giữ chuỗi {n} ngày', { n }),
+    feature_used: t('dùng chức năng {name} {n} lần', { name: featureLabel(badge.rule_target), n }),
+    expenses_logged: t('ghi {n} khoản chi tiêu', { n }),
+    goals_created: t('tạo {n} mục tiêu', { n }),
+    goals_completed: t('hoàn thành {n} mục tiêu', { n }),
+    budgets_created: t('lập {n} ngân sách', { n }),
+    level_reached: t('đạt cấp độ {n}', { n }),
+    xp_total: t('tích luỹ {n} XP', { n }),
+    bot_chats: t('trò chuyện với Ekko bot {n} lần', { n }),
   };
-  return map[badge.rule_type] || 'chưa xác định';
+  return map[badge.rule_type] || t('chưa xác định');
 }
 

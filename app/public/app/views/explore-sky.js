@@ -12,6 +12,7 @@
  * after layout, rather than a decorative background that only roughly lines up.
  */
 import { api, el, toast } from '/shared/client.js';
+import { t } from '../i18n.js';
 import { openModuleQuiz } from './quiz.js';
 
 const ART = {
@@ -46,13 +47,13 @@ export default function exploreSky(ctx, { entries }) {
   });
 
   const home = el('div.maphome', {}, [
-    el('img', { src: level?.island_image || '/assets/islands/level-1.png', alt: 'Đảo của bạn', fetchpriority: 'high' }),
+    el('img', { src: level?.island_image || '/assets/islands/level-1.png', alt: t('Đảo của bạn'), fetchpriority: 'high' }),
   ]);
 
   const track = el('div.maptrack', {}, [home, ...rows]);
   const board = el('div.mapboard', {}, [
     svg,
-    el('div.skyhead', {}, [el('span.skyhead__pill', {}, 'Khám phá · Bản đồ học tập')]),
+    el('div.skyhead', {}, [el('span.skyhead__pill', {}, t('Khám phá · Bản đồ học tập'))]),
     track,
   ]);
 
@@ -81,14 +82,14 @@ function moduleMarker(entry) {
       el('span.mapmodule__title', {}, entry.title),
     ]),
     entry.summary ? el('div.mapmodule__summary', {}, entry.summary) : null,
-    entry.locked ? el('div.mapmodule__locked', {}, `🔒 Mở khoá ở cấp ${entry.unlock_level}`) : null,
+    entry.locked ? el('div.mapmodule__locked', {}, `🔒 ${t('Mở khoá ở cấp {n}', { n: entry.unlock_level })}`) : null,
   ]);
 }
 
 /** Câu nhắc khi bấm vào bài còn khoá — hai lý do khoá cần hai câu khác nhau. */
 const lockedNote = (entry) => (entry.lockReason === 'level'
-  ? 'Mô-đun này mở khoá ở cấp cao hơn.'
-  : 'Học xong bài phía trên đã, rồi bài này mới mở.');
+  ? t('Mô-đun này mở khoá ở cấp cao hơn.')
+  : t('Học xong bài phía trên đã, rồi bài này mới mở.'));
 
 function lessonNode(entry, side, ctx, position) {
   const open = () => {
@@ -102,7 +103,7 @@ function lessonNode(entry, side, ctx, position) {
         el('img', { src: ART.lesson, alt: '', loading: 'lazy' }),
       ]),
       el('span.mapnode__num', {}, entry.completed ? '✓' : String(position)),
-      entry.current ? el('img.mapnode__pig', { src: '/assets/levels/pig-1.png', alt: 'Bạn đang ở đây' }) : null,
+      entry.current ? el('img.mapnode__pig', { src: '/assets/levels/pig-1.png', alt: t('Bạn đang ở đây') }) : null,
     ]),
     el('div.mapnode__info', {}, [
       stateChip(entry, open),
@@ -114,21 +115,21 @@ function lessonNode(entry, side, ctx, position) {
 
 function quizNode(entry, side, ctx) {
   const open = async () => {
-    if (entry.locked) return toast('Học hết bài trong mô đun này để mở phần trắc nghiệm.', 'error');
+    if (entry.locked) return toast(t('Học hết bài trong mô đun này để mở phần trắc nghiệm.'), 'error');
     const module = await api.get(`/api/learn/modules/${encodeURIComponent(entry.moduleSlug)}`);
     return openModuleQuiz(module, ctx);
   };
 
   return el(`div.mapnode.mapnode--${side}.mapnode--quiz`, { dataset: { state: nodeState(entry) } }, [
     el('div.mapnode__art', {}, [
-      el('button', { onclick: open, 'aria-label': `Trắc nghiệm mô đun ${entry.moduleOrder}` }, [
+      el('button', { onclick: open, 'aria-label': t('Trắc nghiệm · Mô-đun {n}', { n: entry.moduleOrder }) }, [
         el('img', { src: ART.quiz, alt: '', loading: 'lazy' }),
       ]),
       el('span.mapnode__num', {}, entry.completed ? '✓' : '?'),
     ]),
     el('div.mapnode__info', {}, [
       stateChip(entry, open),
-      el('button.mapnode__title', { onclick: open }, `Trắc nghiệm kiến thức · Mô-đun ${entry.moduleOrder}`),
+      el('button.mapnode__title', { onclick: open }, t('Trắc nghiệm kiến thức · Mô-đun {n}', { n: entry.moduleOrder })),
       el('span.mapnode__meta', {}, entry.result
         ? `🕐 ${entry.result.correct}/${entry.result.total} đúng`
         : `🕐 ${entry.total} câu`),
@@ -140,7 +141,7 @@ const nodeState = (entry) => (entry.locked ? 'locked' : entry.completed ? 'done'
 
 const stateChip = (entry, open) => el('button.mapnode__chip', {
   onclick: open,
-  'aria-label': entry.locked ? 'Chưa mở khoá' : 'Bắt đầu',
+  'aria-label': entry.locked ? t('Chưa mở khoá') : t('Bắt đầu'),
 }, entry.locked ? '🔒' : entry.completed ? '✓' : '▶');
 
 // ------------------------------------------------------------------- drawing

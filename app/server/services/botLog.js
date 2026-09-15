@@ -11,6 +11,7 @@
  */
 import { run } from '../db.js';
 import { formatVnd, nowIso } from '../lib/time.js';
+import { tr } from '../i18n/index.js';
 
 export const CHAT_SOURCES = ['chat', 'quick'];
 
@@ -30,13 +31,40 @@ export function appendMessages(userId, messages, source = 'chat') {
 }
 
 /**
+ * Câu xác nhận sau khi ghi một khoản chi, dựng từ dữ liệu thô.
+ *
+ * Tách khỏi `expenseLoggedReply` để dựng lại được ở ngôn ngữ khác: sổ hội thoại
+ * lưu `logged` (số tiền, nhóm, ghi chú) chứ không chỉ lưu câu đã viết, nên khi
+ * người dùng đổi sang tiếng Anh thì những câu bot đã nói cũng đọc bằng tiếng Anh.
+ * Riêng câu người dùng tự gõ ("cà phê 35k") thì giữ nguyên — đó là lời của họ.
+ */
+export function renderExpenseLogged(logged, lang = 'vi') {
+  const money = formatVnd(logged?.amount, lang);
+  const name = tr(logged?.categoryName || 'Khác', lang);
+  const icon = logged?.categoryIcon ? `${logged.categoryIcon} ` : '';
+  const tail = logged?.note ? ` (${logged.note})` : '';
+
+  return lang === 'en'
+    ? `Logged **${money}** under ${icon}**${name}**${tail}. If the category is off, change it in your expense log.`
+    : `Đã ghi **${money}** vào nhóm ${icon}**${name}**${tail}. Nếu nhóm chưa đúng, bạn đổi trong sổ chi tiêu nhé.`;
+}
+
+/**
  * Câu xác nhận sau khi ghi một khoản chi. Dùng chung cho Ekko bot và thanh ghi
  * nhanh, nên hai đường vào nói cùng một kiểu trong khung chat.
  */
-export function expenseLoggedReply({ amount, category, note }) {
+export function expenseLoggedReply({ amount, category, note }, lang = 'vi') {
+  const logged = {
+    amount,
+    categoryName: category?.name || 'Khác',
+    categoryIcon: category?.icon || null,
+    note: note || null,
+  };
+
   return {
     kind: 'expense_logged',
-    text: `Đã ghi **${formatVnd(amount)}** vào nhóm ${category?.icon || ''} **${category?.name || 'Khác'}**${note ? ` (${note})` : ''}. Nếu nhóm chưa đúng, bạn đổi trong sổ chi tiêu nhé.`,
+    logged,
+    text: renderExpenseLogged(logged, lang),
     action: { type: 'navigate', route: '/app/#/expenses', label: 'Mở sổ chi tiêu' },
     suggestions: ['Tháng này tôi tiêu bao nhiêu?', 'Ngân sách còn bao nhiêu?'],
   };

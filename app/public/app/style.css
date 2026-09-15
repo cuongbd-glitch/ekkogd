@@ -112,6 +112,55 @@ img { max-width: 100%; }
 .device__chassis { display: none; }
 .statusbar, .homebar { display: none; }
 
+/* -------------------------------------------------- language switch
+   Công cụ của bản demo, KHÔNG phải giao diện app: luôn nằm ngoài khung điện
+   thoại. Ở cửa sổ đủ rộng (lúc khung máy hiện ra) nó nổi ở góc trên phải của
+   nền trang; ở cửa sổ hẹp — app tràn viền, không còn "bên ngoài" nào cả — nó
+   thu lại thành viên nhỏ nhưng vẫn nổi trên cùng và không cuộn theo nội dung. */
+.langswitch {
+  position: fixed;
+  top: max(var(--spacing-12), env(safe-area-inset-top));
+  right: var(--spacing-12);
+  z-index: 400;                     /* trên cả ảnh khung máy (z-index 300) */
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
+  border: 1px solid var(--border-secondary);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--ekko-midnight) 12%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.langswitch__btn {
+  border: 0;
+  cursor: pointer;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 var(--spacing-8);
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+.langswitch__btn:hover { color: var(--text-primary); }
+
+.langswitch__btn[aria-pressed="true"] {
+  background: var(--bg-brand-500);
+  color: var(--text-white);
+}
+
+@media (min-width: 768px) and (min-height: 680px) {
+  .langswitch {
+    top: var(--spacing-20);
+    right: var(--spacing-20);
+  }
+  .langswitch__btn { min-width: 40px; height: 30px; font-size: 13px; }
+}
+
 @media (min-width: 768px) and (min-height: 680px) {
   body {
     display: grid;

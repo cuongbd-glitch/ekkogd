@@ -7,6 +7,7 @@
  */
 import { api, el, guard, mount, spriteIcon } from '/shared/client.js';
 import { celebrate, celebrateRewards, closeSheet, getOverlayRoot, lockScroll, unlockScroll } from '../ui.js';
+import { t } from '../i18n.js';
 
 export async function openModuleQuiz(module, ctx) {
   const questions = module.quiz?.questions ?? [];
@@ -21,11 +22,11 @@ export async function openModuleQuiz(module, ctx) {
   const stage = el('div.player__stage');
   const foot = el('div.player__foot');
 
-  const player = el('div.player', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Trắc nghiệm cuối mô đun' }, [
+  const player = el('div.player', { role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Trắc nghiệm cuối mô đun') }, [
     segments,
     el('div.player__head', {}, [
-      el('button.iconbtn', { onclick: close, 'aria-label': 'Đóng' }, '✕'),
-      el('strong', {}, `Trắc nghiệm · ${module.title}`),
+      el('button.iconbtn', { onclick: close, 'aria-label': t('Đóng') }, '✕'),
+      el('strong', {}, t('Trắc nghiệm · {title}', { title: module.title })),
     ]),
     stage,
     foot,
@@ -51,7 +52,7 @@ export async function openModuleQuiz(module, ctx) {
     const next = el('button.btn.btn--block', {
       disabled: chosen === undefined,
       onclick: () => (isLast ? submit() : goTo(index + 1)),
-    }, isLast ? 'Xem kết quả' : 'Câu tiếp theo');
+    }, isLast ? t('Xem kết quả') : t('Câu tiếp theo'));
 
     const options = question.options.map((option, i) => el('button.quiz-option', {
       dataset: chosen === i ? { state: 'picked' } : {},
@@ -65,13 +66,13 @@ export async function openModuleQuiz(module, ctx) {
     ]));
 
     mount(stage, el('div.frame', {}, [
-      el('p.frame__caption', {}, `Câu ${index + 1} / ${questions.length}`),
+      el('p.frame__caption', {}, t('Câu {i} / {n}', { i: index + 1, n: questions.length })),
       el('h2', {}, question.question),
       ...options,
     ]));
 
     mount(foot, el('div', { style: { display: 'flex', gap: '10px' } }, [
-      index > 0 ? el('button.btn.btn--ghost', { onclick: () => goTo(index - 1), 'aria-label': 'Câu trước' }, [spriteIcon('chevron-left-01-stroke', 20)]) : null,
+      index > 0 ? el('button.btn.btn--ghost', { onclick: () => goTo(index - 1), 'aria-label': t('Câu trước') }, [spriteIcon('chevron-left-01-stroke', 20)]) : null,
       next,
     ]));
   }
@@ -86,7 +87,7 @@ export async function openModuleQuiz(module, ctx) {
   async function submit() {
     const result = await guard(
       () => api.post(`/api/learn/modules/${encodeURIComponent(module.slug)}/quiz`, { answers }),
-      'Không gửi được bài làm',
+      t('Không gửi được bài làm'),
     );
     if (!result) return;
 
@@ -94,15 +95,15 @@ export async function openModuleQuiz(module, ctx) {
 
     const passed = result.correct === result.total;
     await celebrate({
-      title: passed ? 'Đúng hết!' : `Đúng ${result.correct}/${result.total}`,
+      title: passed ? t('Đúng hết!') : t('Đúng {right}/{total}', { right: result.correct, total: result.total }),
       subtitle: passed
-        ? 'Bạn đã nắm chắc mô đun này.'
-        : 'Bạn có thể làm lại để cải thiện điểm. Chỉ điểm cao hơn mới được tính thưởng.',
+        ? t('Bạn đã nắm chắc mô đun này.')
+        : t('Bạn có thể làm lại để cải thiện điểm. Chỉ điểm cao hơn mới được tính thưởng.'),
       image: passed ? '/assets/mascot/bot-1.png' : '/assets/mascot/bot-9.png',
-      stats: [`${result.correct}/${result.total} câu đúng`],
-      actionLabel: 'Xong',
+      stats: [t('{right}/{total} câu đúng', { right: result.correct, total: result.total })],
+      actionLabel: t('Xong'),
     });
-    await celebrateRewards(result.rewards, { title: 'Thưởng trắc nghiệm' });
+    await celebrateRewards(result.rewards, { title: t('Thưởng trắc nghiệm') });
 
     await ctx.refreshWorld();
     ctx.navigate('/explore');

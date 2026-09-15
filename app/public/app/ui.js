@@ -1,5 +1,6 @@
 /** App-specific UI primitives: bottom sheets, the reward celebration, HUD bits. */
 import { el, getOverlayRoot, lockScroll, unlockScroll } from '/shared/client.js';
+import { t } from './i18n.js';
 
 // --- bottom sheet --------------------------------------------------------
 let openSheet = null;
@@ -8,10 +9,10 @@ export function sheet({ title, body, footer, onClose }) {
   closeSheet();
 
   const backdrop = el('div.sheet-backdrop', { onclick: () => closeSheet() });
-  const panel = el('div.sheet', { role: 'dialog', 'aria-modal': 'true', 'aria-label': title || 'Bảng' }, [
+  const panel = el('div.sheet', { role: 'dialog', 'aria-modal': 'true', 'aria-label': title || t('Bảng') }, [
     el('div.sheet__head', {}, [
       el('h2', {}, title || ''),
-      el('button.iconbtn', { onclick: () => closeSheet(), 'aria-label': 'Đóng' }, '✕'),
+      el('button.iconbtn', { onclick: () => closeSheet(), 'aria-label': t('Đóng') }, '✕'),
     ]),
     el('div.sheet__body', {}, [].concat(body)),
     footer || null,
@@ -49,7 +50,7 @@ const MASCOT_CHEER = ['/assets/mascot/bot-1.png', '/assets/mascot/bot-2.png', '/
  * One screen for every "you earned something" moment: lesson finished, module
  * finished, level up, badges. Resolves when the user dismisses it.
  */
-export function celebrate({ title, subtitle, image, stats = [], badges = [], levelUp = null, actionLabel = 'Tuyệt vời' }) {
+export function celebrate({ title, subtitle, image, stats = [], badges = [], levelUp = null, actionLabel = t('Tuyệt vời') }) {
   return new Promise((resolve) => {
     const overlay = el('div.reward', { role: 'dialog', 'aria-modal': 'true' });
 
@@ -68,12 +69,12 @@ export function celebrate({ title, subtitle, image, stats = [], badges = [], lev
       levelUp
         ? el('div.reward__badge', {}, [
           el('span', {}, levelUp.emoji || '🎉'),
-          el('div', {}, [el('b', {}, `Lên cấp: ${levelUp.name}`), el('small', {}, levelUp.perk || '')]),
+          el('div', {}, [el('b', {}, t('Lên cấp: {name}', { name: levelUp.name })), el('small', {}, levelUp.perk || '')]),
         ])
         : null,
       ...badges.map((b) => el('div.reward__badge', {}, [
         el('span', {}, b.icon || '🏅'),
-        el('div', {}, [el('b', {}, `Huy hiệu mới: ${b.name}`), el('small', {}, b.description || '')]),
+        el('div', {}, [el('b', {}, t('Huy hiệu mới: {name}', { name: b.name })), el('small', {}, b.description || '')]),
       ])),
       el('button.btn.btn--block', { onclick: close, style: { marginTop: '8px' } }, actionLabel),
     ]);
@@ -94,13 +95,13 @@ export async function celebrateRewards(rewards, { title, subtitle, image } = {})
   if (rewards.xp) stats.push(`+${rewards.xp} XP`);
   if (rewards.streak?.changed) {
     stats.push(rewards.streak.outcome === 'recovered'
-      ? `🔥 Cứu chuỗi: ${rewards.streak.count} ngày`
-      : `🔥 ${rewards.streak.count} ngày`);
+      ? `🔥 ${t('Cứu chuỗi: {n} ngày', { n: rewards.streak.count })}`
+      : `🔥 ${t('{n} ngày', { n: rewards.streak.count })}`);
   }
   if (!stats.length && !rewards.badges?.length && !rewards.levelUp) return;
 
   await celebrate({
-    title: title || 'Làm tốt lắm',
+    title: title || t('Làm tốt lắm'),
     subtitle,
     image,
     stats,
@@ -114,7 +115,7 @@ export const bar = (percent, tone = '') => el('div.bar', {}, [
   el(`div.bar__fill${tone ? `.bar__fill--${tone}` : ''}`, { style: { width: `${Math.max(0, Math.min(100, percent))}%` } }),
 ]);
 
-export function confirmSheet({ title, message, confirmLabel = 'Xoá', tone = 'danger' }) {
+export function confirmSheet({ title, message, confirmLabel = t('Xoá'), tone = 'danger' }) {
   return new Promise((resolve) => {
     let settled = false;
     const answer = (value) => { settled = true; closeSheet(); resolve(value); };
@@ -123,7 +124,7 @@ export function confirmSheet({ title, message, confirmLabel = 'Xoá', tone = 'da
       title,
       body: [el('p.muted', {}, message)],
       footer: el('div.sheet__body', { style: { display: 'flex', gap: '12px', borderTop: '1px solid var(--border-secondary)' } }, [
-        el('button.btn.btn--ghost', { style: { flex: '1' }, onclick: () => answer(false) }, 'Huỷ'),
+        el('button.btn.btn--ghost', { style: { flex: '1' }, onclick: () => answer(false) }, t('Huỷ')),
         el(`button.btn.btn--${tone}`, { style: { flex: '1' }, onclick: () => answer(true) }, confirmLabel),
       ]),
       onClose: () => { if (!settled) resolve(false); },

@@ -1,6 +1,7 @@
 /** Ghi chép chi tiêu: fast manual entry, plus the same log Ekko bot writes to. */
 import { api, el, formatDay, guard, mount, relativeDay, singleFlight, toast, vnd, vndShort } from '/shared/client.js';
 import { bar, closeSheet, confirmSheet, sheet } from '../ui.js';
+import { t } from '../i18n.js';
 
 const RANGES = [
   ['today', 'Hôm nay'],
@@ -28,28 +29,28 @@ async function body(ctx, rerender, preloaded, range) {
   const data = preloaded || await api.get(`/api/expenses?range=${range}`);
   const { expenses, byCategory, totals, categories, label, monthBudget } = data;
 
-  const tabs = el('div.segmented', { role: 'group', 'aria-label': 'Lọc theo thời gian' },
+  const tabs = el('div.segmented', { role: 'group', 'aria-label': t('Lọc theo thời gian') },
     RANGES.map(([key, text]) => el('button', {
       'aria-pressed': String(key === range),
       // Month is the default, so it gets the bare URL rather than ?range=month.
       onclick: () => ctx.navigate(key === 'month' ? '/expenses' : `/expenses?range=${key}`),
-    }, text)));
+    }, t(text))));
 
   const summary = el('div.card', { style: { marginTop: '12px' } }, [
     el('div.stat-row', {}, [
       el('span.stat-big', {}, vnd(totals.total)),
-      el('small', {}, label.toLowerCase()),
+      el('small', {}, t(label).toLowerCase()),
     ]),
     el('div.stat-row', { style: { marginTop: '10px' } }, [
-      el('small', {}, range === 'today' ? '' : `Hôm nay: ${vnd(totals.today)}`),
-      el('small', {}, `${totals.count} khoản`),
+      el('small', {}, range === 'today' ? '' : t('Hôm nay: {amount}', { amount: vnd(totals.today) })),
+      el('small', {}, t('{count} khoản', { count: totals.count })),
     ]),
     byCategory.length ? categoryStack(byCategory) : null,
     budgetGauge(monthBudget, ctx),
   ]);
 
   const quickAdd = el('button.btn.btn--block', { style: { marginTop: '16px' }, onclick: () => openAdd(ctx, categories, rerender) },
-    '+ Ghi một khoản chi');
+    `+ ${t('Ghi một khoản chi')}`);
 
   // Chụp trước rồi mới điền: đứng ở quầy thì chụp cái hoá đơn nhanh hơn là gõ số.
   const byReceipt = el('div.receipt__entry', {}, [
@@ -59,7 +60,7 @@ async function body(ctx, rerender, preloaded, range) {
   const grouped = groupByDay(expenses);
 
   return el('div', {}, [
-    el('div', { style: { fontSize: '17px', fontWeight: '600', marginBottom: '16px' } }, 'Ghi chép chi tiêu'),
+    el('div', { style: { fontSize: '17px', fontWeight: '600', marginBottom: '16px' } }, t('Ghi chép chi tiêu')),
     tabs,
     summary,
     quickAdd,
@@ -75,8 +76,8 @@ async function body(ctx, rerender, preloaded, range) {
       ])))
       : el('div.empty', {}, [
         el('img', { src: '/assets/lessons/ghi-chep-3-phut.svg', alt: '' }),
-        el('h3', {}, `Chưa có khoản chi nào ${label.toLowerCase()}`),
-        el('p.muted', {}, 'Ghi ngay tại thời điểm trả tiền là cách duy nhất giữ được thói quen này.'),
+        el('h3', {}, t('Chưa có khoản chi nào {period}', { period: t(label).toLowerCase() })),
+        el('p.muted', {}, t('Ghi ngay tại thời điểm trả tiền là cách duy nhất giữ được thói quen này.')),
       ]),
   ]);
 }
@@ -95,8 +96,8 @@ function budgetGauge(month, ctx) {
   if (!month.exists) {
     return el('div.gauge', {}, [
       el('div.gauge__row', {}, [
-        el('span.gauge__label', {}, 'Chưa lập ngân sách tháng này'),
-        el('button.linkbtn', { onclick: () => ctx.navigate('/budget') }, 'Lập ngân sách'),
+        el('span.gauge__label', {}, t('Chưa lập ngân sách tháng này')),
+        el('button.linkbtn', { onclick: () => ctx.navigate('/budget') }, t('Lập ngân sách')),
       ]),
     ]);
   }
@@ -105,15 +106,15 @@ function budgetGauge(month, ctx) {
   const tone = toneFor(month.percent);
   return el('div.gauge', {}, [
     el('div.gauge__row', {}, [
-      el('span.gauge__label', {}, `Đã dùng ${month.percent}% ngân sách tháng`),
+      el('span.gauge__label', {}, t('Đã dùng {percent}% ngân sách tháng', { percent: month.percent })),
       el('span.gauge__value', { dataset: { tone: tone || 'ok' } }, vuot
-        ? `Vượt ${vnd(-month.remaining)}`
-        : `Còn ${vnd(month.remaining)}`),
+        ? t('Vượt {amount}', { amount: vnd(-month.remaining) })
+        : t('Còn {amount}', { amount: vnd(month.remaining) })),
     ]),
     bar(month.percent, tone),
     el('div.gauge__foot', {}, [
-      `${vnd(month.spent)} trên ngân sách ${vnd(month.planned)}`,
-      month.income ? ` · thu nhập ${vnd(month.income)}` : '',
+      t('{spent} trên ngân sách {planned}', { spent: vnd(month.spent), planned: vnd(month.planned) }),
+      month.income ? ` · ${t('thu nhập {amount}', { amount: vnd(month.income) })}` : '',
     ].join('')),
   ]);
 }
@@ -158,33 +159,36 @@ function expenseRow(expense, rerender) {
       style: { background: `color-mix(in srgb, ${expense.category_color || 'var(--bg-brand-500)'} 10%, transparent)` },
     }, expense.category_icon || '📦'),
     el('div.row__main', {}, [
-      el('div.row__title', {}, expense.note || expense.category_name || 'Khoản chi'),
+      el('div.row__title', {}, expense.note || expense.category_name || t('Khoản chi')),
       el('div.row__sub', {}, [
-        expense.category_name || 'Khác',
-        expense.source === 'bot' ? ' · qua Ekko bot' : '',
+        expense.category_name || t('Khác'),
+        expense.source === 'bot' ? ` · ${t('qua Ekko bot')}` : '',
       ].join('')),
     ]),
     expense.receipt_url
       ? el('button.row__receipt', {
-        'aria-label': 'Xem ảnh hoá đơn',
+        'aria-label': t('Xem ảnh hoá đơn'),
         onclick: () => sheet({
-          title: 'Ảnh hoá đơn',
-          body: [el('img.receipt__img', { src: expense.receipt_url, alt: 'Ảnh hoá đơn' })],
+          title: t('Ảnh hoá đơn'),
+          body: [el('img.receipt__img', { src: expense.receipt_url, alt: t('Ảnh hoá đơn') })],
         }),
       }, [el('img', { src: expense.receipt_url, alt: '', loading: 'lazy' })])
       : null,
     el('span.row__value', {}, vnd(expense.amount)),
     el('button.iconbtn', {
       style: { width: '32px', height: '32px', background: 'transparent', color: 'var(--text-tertiary)' },
-      'aria-label': 'Xoá khoản chi',
+      'aria-label': t('Xoá khoản chi'),
       onclick: async () => {
         const ok = await confirmSheet({
-          title: 'Xoá khoản chi',
-          message: `Xoá ${vnd(expense.amount)} - ${expense.note || expense.category_name || ''}?`,
+          title: t('Xoá khoản chi'),
+          message: t('Xoá {amount} - {what}?', {
+            amount: vnd(expense.amount),
+            what: expense.note || expense.category_name || '',
+          }),
         });
         if (!ok) return;
-        await guard(() => api.delete(`/api/expenses/${expense.id}`), 'Không xoá được');
-        toast('Đã xoá');
+        await guard(() => api.delete(`/api/expenses/${expense.id}`), t('Không xoá được'));
+        toast(t('Đã xoá'));
         rerender();
       },
     }, '✕'),
@@ -199,10 +203,10 @@ function expenseRow(expense, rerender) {
 function shrinkImage(file, max = 1280, quality = 0.72) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Không đọc được tệp ảnh'));
+    reader.onerror = () => reject(new Error(t('Không đọc được tệp ảnh')));
     reader.onload = () => {
       const img = new Image();
-      img.onerror = () => reject(new Error('Tệp này không phải ảnh'));
+      img.onerror = () => reject(new Error(t('Tệp này không phải ảnh')));
       img.onload = () => {
         const scale = Math.min(1, max / Math.max(img.width, img.height));
         const canvas = el('canvas');
@@ -235,15 +239,15 @@ function receiptPicker(onPick) {
     try {
       onPick(await shrinkImage(file));
     } catch (err) {
-      toast(err.message || 'Không đọc được ảnh', 'error');
+      toast(err.message || t('Không đọc được ảnh'), 'error');
     }
   };
   chup.addEventListener('change', () => handle(chup));
   chon.addEventListener('change', () => handle(chon));
 
   return el('div.receipt__pick', {}, [
-    el('button.btn.btn--ghost', { onclick: () => chup.click() }, ['📷 Chụp hoá đơn']),
-    el('button.btn.btn--ghost', { onclick: () => chon.click() }, ['🖼️ Chọn ảnh có sẵn']),
+    el('button.btn.btn--ghost', { onclick: () => chup.click() }, [`📷 ${t('Chụp hoá đơn')}`]),
+    el('button.btn.btn--ghost', { onclick: () => chon.click() }, [`🖼️ ${t('Chọn ảnh có sẵn')}`]),
     chup,
     chon,
   ]);
@@ -272,12 +276,12 @@ function dateFromReceipt(read, today) {
 }
 
 async function scanThenAdd(ctx, categories, rerender, dataUrl) {
-  const dismiss = toast('Đang đọc hoá đơn…', 'info');
+  const dismiss = toast(t('Đang đọc hoá đơn…'), 'info');
   let read = null;
   try {
     read = await api.post('/api/expenses/scan', { receipt: dataUrl });
   } catch (err) {
-    toast(err.message || 'Chưa đọc được hoá đơn, bạn nhập tay nhé', 'warning');
+    toast(err.message || t('Chưa đọc được hoá đơn, bạn nhập tay nhé'), 'warning');
   } finally {
     dismiss?.();
   }
@@ -288,23 +292,24 @@ async function scanThenAdd(ctx, categories, rerender, dataUrl) {
   const { receiptDate } = dateFromReceipt(read, ctx.world.today);
   if (receiptDate) {
     toast({
-      title: `Đọc được ${vnd(read.amount)}`,
-      body: `Hoá đơn đề ngày ${formatDay(receiptDate)} — mình để ngày hôm nay cho bạn thấy được trong sổ. Sửa lại ở ô Ngày chi nếu cần.`,
+      title: t('Đọc được {amount}', { amount: vnd(read.amount) }),
+      body: t('Hoá đơn đề ngày {day} — mình để ngày hôm nay cho bạn thấy được trong sổ. Sửa lại ở ô Ngày chi nếu cần.',
+        { day: formatDay(receiptDate) }),
     }, 'warning');
     return;
   }
   toast(read.confidence === 'cao'
-    ? `Đọc được ${vnd(read.amount)}. Kiểm lại rồi bấm Lưu nhé.`
-    : `Đọc được ${vnd(read.amount)} nhưng chưa chắc lắm — bạn xem lại giúp.`,
+    ? t('Đọc được {amount}. Kiểm lại rồi bấm Lưu nhé.', { amount: vnd(read.amount) })
+    : t('Đọc được {amount} nhưng chưa chắc lắm — bạn xem lại giúp.', { amount: vnd(read.amount) }),
   read.confidence === 'cao' ? 'success' : 'warning');
 }
 
 function openAdd(ctx, categories, rerender, receipt = null, read = null) {
   const amountInput = el('input.input', {
     type: 'number', inputmode: 'numeric', min: '1000', step: '1000',
-    placeholder: 'VD: 35000', autofocus: true,
+    placeholder: t('VD: 35000'), autofocus: true,
   });
-  const noteInput = el('input.input', { placeholder: 'VD: cà phê sáng', maxlength: '120' });
+  const noteInput = el('input.input', { placeholder: t('VD: cà phê sáng'), maxlength: '120' });
   const dateInput = el('input.input', { type: 'date', value: dateFromReceipt(read, ctx.world.today).date });
 
   if (read?.amount) amountInput.value = String(read.amount);
@@ -325,8 +330,8 @@ function openAdd(ctx, categories, rerender, receipt = null, read = null) {
   const drawReceipt = () => {
     mount(preview, anh
       ? [
-        el('img.receipt__img', { src: anh, alt: 'Ảnh hoá đơn' }),
-        el('button.btn.btn--ghost.btn--sm', { onclick: () => { anh = null; drawReceipt(); } }, 'Bỏ ảnh này'),
+        el('img.receipt__img', { src: anh, alt: t('Ảnh hoá đơn') }),
+        el('button.btn.btn--ghost.btn--sm', { onclick: () => { anh = null; drawReceipt(); } }, t('Bỏ ảnh này')),
       ]
       : [receiptPicker((dataUrl) => { anh = dataUrl; drawReceipt(); })]);
   };
@@ -335,33 +340,33 @@ function openAdd(ctx, categories, rerender, receipt = null, read = null) {
   // singleFlight: bấm "Lưu" hai lần liên tiếp không được ghi thành hai khoản.
   const save = singleFlight(async () => {
     const amount = Number(amountInput.value);
-    if (!amount || amount <= 0) return toast('Nhập số tiền lớn hơn 0', 'error');
+    if (!amount || amount <= 0) return toast(t('Nhập số tiền lớn hơn 0'), 'error');
 
     const result = await guard(() => api.post('/api/expenses', {
       amount, categoryId: picked, note: noteInput.value.trim() || null, spentOn: dateInput.value,
       receipt: anh,
-    }), 'Không ghi được khoản chi');
+    }), t('Không ghi được khoản chi'));
     if (!result) return;
 
     closeSheet();
     if (result.alerts?.length) {
       toast({ title: result.alerts[0].title, body: result.alerts[0].text }, 'warning');
     } else {
-      toast(`Đã ghi ${vnd(amount)}`, 'success');
+      toast(t('Đã ghi {amount}', { amount: vnd(amount) }), 'success');
     }
     await ctx.refreshWorld();
     rerender();
   });
 
   sheet({
-    title: 'Ghi một khoản chi',
+    title: t('Ghi một khoản chi'),
     body: [
-      el('label.field', {}, [el('span', {}, 'Số tiền'), amountInput]),
-      el('div.field', {}, [el('span', {}, 'Nhóm chi tiêu'), chips]),
-      el('label.field', {}, [el('span', {}, 'Ghi chú'), noteInput]),
-      el('label.field', {}, [el('span', {}, 'Ngày chi'), dateInput]),
-      el('div.field', {}, [el('span', {}, 'Ảnh hoá đơn'), preview]),
-      el('button.btn.btn--block', { onclick: save }, 'Lưu'),
+      el('label.field', {}, [el('span', {}, t('Số tiền')), amountInput]),
+      el('div.field', {}, [el('span', {}, t('Nhóm chi tiêu')), chips]),
+      el('label.field', {}, [el('span', {}, t('Ghi chú')), noteInput]),
+      el('label.field', {}, [el('span', {}, t('Ngày chi')), dateInput]),
+      el('div.field', {}, [el('span', {}, t('Ảnh hoá đơn')), preview]),
+      el('button.btn.btn--block', { onclick: save }, t('Lưu')),
     ],
   });
 }

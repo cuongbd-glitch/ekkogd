@@ -11,6 +11,7 @@
  */
 import { api, el, formatDay, getScrollRoot, guard, mount, singleFlight, spriteIcon, toast, vnd } from '/shared/client.js';
 import { bar, celebrate, celebrateRewards, closeSheet, confirmSheet, sheet } from '../ui.js';
+import { getLang, t } from '../i18n.js';
 
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 
@@ -38,7 +39,7 @@ export default async function goalsView(ctx) {
         showList();
         toTop();
       },
-    }, item.label))),
+    }, t(item.label)))),
   ]);
 
   const reload = async () => { data = await api.get('/api/goals'); };
@@ -54,26 +55,26 @@ export default async function goalsView(ctx) {
     if (!goals.length) {
       return [el('div.empty', {}, [
         el('img', { src: '/assets/lessons/muc-tieu-tiet-kiem.svg', alt: '' }),
-        el('h3', {}, 'Chưa có mục tiêu nào'),
-        el('p.muted', {}, 'Mục tiêu đầu tiên nên là một tháng chi phí thiết yếu. Đạt mốc đó rồi mới nâng dần lên ba tháng.'),
+        el('h3', {}, t('Chưa có mục tiêu nào')),
+        el('p.muted', {}, t('Mục tiêu đầu tiên nên là một tháng chi phí thiết yếu. Đạt mốc đó rồi mới nâng dần lên ba tháng.')),
         el('button.btn', {
           style: { marginTop: '16px' },
           onclick: () => { tab = 'new'; showList(); toTop(); },
-        }, 'Xem mục tiêu gợi ý'),
+        }, t('Xem mục tiêu gợi ý')),
       ])];
     }
 
     return [
-      el('p.skynote', {}, `Đã tích luỹ ${vnd(totals.saved)} / ${vnd(totals.target)}`),
+      el('p.skynote', {}, t('Đã tích luỹ {saved} / {target}', { saved: vnd(totals.saved), target: vnd(totals.target) })),
       ...goals.map((goal) => goalCard(goal)),
       goals.length > 3
-        ? el('p.skynote', {}, 'Bạn đang chạy nhiều mục tiêu cùng lúc. Ba mục tiêu là tối đa nếu muốn thực sự về đích.')
+        ? el('p.skynote', {}, t('Bạn đang chạy nhiều mục tiêu cùng lúc. Ba mục tiêu là tối đa nếu muốn thực sự về đích.'))
         : null,
     ];
   }
 
   function catalogueBody() {
-    const nodes = [el('p.skynote', {}, 'Chọn một gợi ý, Ekko điền sẵn số tiền và thời hạn cho bạn.')];
+    const nodes = [el('p.skynote', {}, t('Chọn một gợi ý, Ekko điền sẵn số tiền và thời hạn cho bạn.'))];
 
     for (const group of data.templates) {
       nodes.push(el('div.goalgroup', {}, [spriteIcon(group.icon, 20), el('span', {}, group.label)]));
@@ -100,32 +101,32 @@ export default async function goalsView(ctx) {
       el('div.card__head', {}, [
         el('span', { style: { fontSize: '24px' } }, goal.icon || '🎯'),
         el('h3', {}, goal.name),
-        done ? el('span.pill.pill--done', {}, '✓ Xong') : null,
+        done ? el('span.pill.pill--done', {}, `✓ ${t('Xong')}`) : null,
       ]),
       el('div.stat-row', {}, [
         el('b', {}, vnd(goal.saved_amount)),
-        el('small', {}, `mục tiêu ${vnd(goal.target_amount)}`),
+        el('small', {}, t('mục tiêu {amount}', { amount: vnd(goal.target_amount) })),
       ]),
       el('div', { style: { marginTop: '8px' } }, [bar(goal.percent, done ? 'good' : '')]),
       el('div.stat-row', { style: { marginTop: '10px' } }, [
-        el('small', {}, done ? 'Đã cán đích' : `Còn thiếu ${vnd(goal.remaining)}`),
-        el('small', {}, goal.deadline ? `Hạn ${formatDay(goal.deadline)}` : ''),
+        el('small', {}, done ? t('Đã cán đích') : t('Còn thiếu {amount}', { amount: vnd(goal.remaining) })),
+        el('small', {}, goal.deadline ? t('Hạn {day}', { day: formatDay(goal.deadline) }) : ''),
       ]),
       !done && plan && !plan.expired
         ? el('p.muted', { style: { marginTop: '8px', fontSize: '12px' } },
-          `Để kịp hạn, cần để dành khoảng ${vnd(plan.perPeriod)} ${periodEvery(goal.period)}.`)
+          t('Để kịp hạn, cần để dành khoảng {amount} {every}.', { amount: vnd(plan.perPeriod), every: periodEvery(goal.period) }))
         : null,
 
       done ? null : el('div', { style: { display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' } }, [
         ...QUICK_AMOUNTS.map((amount) => el('button.chip', {
           onclick: () => deposit(goal, amount),
         }, `+${amount >= 1000000 ? `${amount / 1000000}tr` : `${amount / 1000}k`}`)),
-        el('button.chip', { onclick: () => openDeposit(goal) }, 'Số khác'),
+        el('button.chip', { onclick: () => openDeposit(goal) }, t('Số khác')),
       ]),
 
       el('div', { style: { display: 'flex', gap: '8px', marginTop: '12px' } }, [
-        el('button.btn.btn--sm.btn--ghost', { onclick: () => showForm({ goal }) }, 'Sửa'),
-        el('button.btn.btn--sm.btn--danger', { onclick: () => remove(goal) }, 'Xoá'),
+        el('button.btn.btn--sm.btn--ghost', { onclick: () => showForm({ goal }) }, t('Sửa')),
+        el('button.btn.btn--sm.btn--danger', { onclick: () => remove(goal) }, t('Xoá')),
       ]),
     ]);
   }
@@ -134,13 +135,13 @@ export default async function goalsView(ctx) {
   function formBody({ template = null, goal = null }) {
     const editing = Boolean(goal);
     const emoji = goal?.icon || template?.emoji || '🎯';
-    const groupLabel = editing ? (goal.group || 'Mục tiêu của bạn') : template.group;
+    const groupLabel = editing ? (goal.group || t('Mục tiêu của bạn')) : template.group;
     // Mục tiêu tự do cố tình để trống tên và số tiền: đó là phần người dùng tự đặt.
     const blank = template?.code === 'custom';
 
     const nameInput = el('input.input', {
       value: editing ? goal.name : (blank ? '' : template.name),
-      placeholder: 'VD: Học tiếng Anh',
+      placeholder: t('VD: Học tiếng Anh'),
       maxlength: '120',
     });
     const amountInput = moneyInput(editing ? goal.target_amount : (blank ? 0 : template.amount));
@@ -159,7 +160,7 @@ export default async function goalsView(ctx) {
         [...periodPick.children].forEach((child) => child.setAttribute('aria-pressed', String(child === event.currentTarget)));
         refresh();
       },
-    }, label)));
+    }, t(label))));
 
     const calcBody = el('div.ekkocalc__body');
     const read = () => ({
@@ -186,16 +187,16 @@ export default async function goalsView(ctx) {
     // singleFlight: một lần bấm "Lưu mục tiêu" không được tạo thành hai mục tiêu.
     const save = singleFlight(async () => {
       const draft = read();
-      if (!draft.name) return toast('Hãy đặt tên cho mục tiêu', 'error');
-      if (!draft.targetAmount) return toast('Nhập số tiền mục tiêu', 'error');
+      if (!draft.name) return toast(t('Hãy đặt tên cho mục tiêu'), 'error');
+      if (!draft.targetAmount) return toast(t('Nhập số tiền mục tiêu'), 'error');
 
       const result = editing
-        ? await guard(() => api.patch(`/api/goals/${goal.id}`, draft), 'Không lưu được')
-        : await guard(() => api.post('/api/goals', { ...draft, template: template.code, icon: emoji }), 'Không tạo được mục tiêu');
+        ? await guard(() => api.patch(`/api/goals/${goal.id}`, draft), t('Không lưu được'))
+        : await guard(() => api.post('/api/goals', { ...draft, template: template.code, icon: emoji }), t('Không tạo được mục tiêu'));
       if (!result) return;
 
-      toast(editing ? 'Đã lưu mục tiêu' : 'Đã tạo mục tiêu', 'success');
-      if (!editing) await celebrateRewards(result.rewards, { title: 'Mục tiêu đã được đặt' });
+      toast(editing ? t('Đã lưu mục tiêu') : t('Đã tạo mục tiêu'), 'success');
+      if (!editing) await celebrateRewards(result.rewards, { title: t('Mục tiêu đã được đặt') });
       await ctx.refreshWorld();
       // Lưu xong thì về tab có mục tiêu vừa đặt, không phải về lại bộ gợi ý.
       tab = 'mine';
@@ -207,25 +208,25 @@ export default async function goalsView(ctx) {
         el('span.goalhero__emoji', {}, emoji),
         el('span.goalhero__meta', {}, [
           el('span.goalhero__group', {}, groupLabel),
-          el('span.goalhero__name', {}, editing ? goal.name : (blank ? 'Mục tiêu của riêng bạn' : template.name)),
+          el('span.goalhero__name', {}, editing ? goal.name : (blank ? t('Mục tiêu của riêng bạn') : template.name)),
         ]),
       ]),
 
       el('div.card.goalform', {}, [
-        el('label.field', {}, [el('span', {}, 'Tên mục tiêu'), nameInput]),
-        el('label.field', {}, [el('span', {}, 'Số tiền mục tiêu (VNĐ)'), amountInput]),
-        el('label.field', {}, [el('span', {}, 'Thời hạn hoàn thành'), deadlineInput]),
-        el('div.field', { style: { marginBottom: '0' } }, [el('span', {}, 'Kỳ tiết kiệm'), periodPick]),
+        el('label.field', {}, [el('span', {}, t('Tên mục tiêu')), nameInput]),
+        el('label.field', {}, [el('span', {}, t('Số tiền mục tiêu (VNĐ)')), amountInput]),
+        el('label.field', {}, [el('span', {}, t('Thời hạn hoàn thành')), deadlineInput]),
+        el('div.field', { style: { marginBottom: '0' } }, [el('span', {}, t('Kỳ tiết kiệm')), periodPick]),
       ]),
 
       el('div.ekkocalc', {}, [
-        el('div.ekkocalc__head', {}, [spriteIcon('star-stroke', 20), el('span', {}, 'Ekko tính giúp bạn')]),
+        el('div.ekkocalc__head', {}, [spriteIcon('star-stroke', 20), el('span', {}, t('Ekko tính giúp bạn'))]),
         calcBody,
       ]),
 
       el('div.formactions', {}, [
-        el('button.btn.btn--pill.btn--white', { onclick: () => { showList(); toTop(); } }, 'Huỷ'),
-        el('button.btn.btn--pill', { onclick: save }, editing ? 'Lưu thay đổi' : 'Lưu mục tiêu'),
+        el('button.btn.btn--pill.btn--white', { onclick: () => { showList(); toTop(); } }, t('Huỷ')),
+        el('button.btn.btn--pill', { onclick: save }, editing ? t('Lưu thay đổi') : t('Lưu mục tiêu')),
       ]),
     ];
   }
@@ -233,18 +234,21 @@ export default async function goalsView(ctx) {
   // ------------------------------------------------------------------ actions
   /** singleFlight: bấm nhanh hai lần vào "+500k" không được nạp thành hai lần. */
   const deposit = singleFlight(async (goal, amount) => {
-    const result = await guard(() => api.post(`/api/goals/${goal.id}/deposit`, { amount }), 'Không nạp được');
+    const result = await guard(() => api.post(`/api/goals/${goal.id}/deposit`, { amount }), t('Không nạp được'));
     if (!result) return;
 
     if (result.justCompleted) {
       await celebrate({
-        title: 'Cán đích!',
-        subtitle: `Bạn đã hoàn thành mục tiêu "${goal.name}".`,
+        title: t('Cán đích!'),
+        subtitle: t('Bạn đã hoàn thành mục tiêu "{name}".', { name: goal.name }),
         image: '/assets/mascot/bot-1.png',
         stats: [vnd(goal.target_amount)],
       });
     } else {
-      toast({ title: `Đã nạp ${vnd(amount)}`, body: `vào "${goal.name}"` }, 'success');
+      toast({
+        title: t('Đã nạp {amount}', { amount: vnd(amount) }),
+        body: t('vào "{name}"', { name: goal.name }),
+      }, 'success');
     }
     await ctx.refreshWorld();
     await reload();
@@ -252,31 +256,31 @@ export default async function goalsView(ctx) {
   });
 
   function openDeposit(goal) {
-    const input = moneyInput(0, 'VD: 350.000');
+    const input = moneyInput(0, t('VD: 350.000'));
     sheet({
-      title: `Nạp vào "${goal.name}"`,
+      title: t('Nạp vào "{name}"', { name: goal.name }),
       body: [
-        el('label.field', {}, [el('span', {}, 'Số tiền'), input]),
+        el('label.field', {}, [el('span', {}, t('Số tiền')), input]),
         el('button.btn.btn--block', {
           onclick: async () => {
             const amount = readMoney(input);
-            if (!amount) return toast('Nhập số tiền lớn hơn 0', 'error');
+            if (!amount) return toast(t('Nhập số tiền lớn hơn 0'), 'error');
             closeSheet();
             await deposit(goal, amount);
           },
-        }, 'Nạp'),
+        }, t('Nạp')),
       ],
     });
   }
 
   async function remove(goal) {
     const ok = await confirmSheet({
-      title: 'Xoá mục tiêu',
-      message: `Xoá "${goal.name}"? Lịch sử nạp tiền của mục tiêu này cũng sẽ mất.`,
+      title: t('Xoá mục tiêu'),
+      message: t('Xoá "{name}"? Lịch sử nạp tiền của mục tiêu này cũng sẽ mất.', { name: goal.name }),
     });
     if (!ok) return;
-    await guard(() => api.delete(`/api/goals/${goal.id}`), 'Không xoá được');
-    toast('Đã xoá mục tiêu');
+    await guard(() => api.delete(`/api/goals/${goal.id}`), t('Không xoá được'));
+    toast(t('Đã xoá mục tiêu'));
     await reload();
     showList();
   }
@@ -290,25 +294,26 @@ export default async function goalsView(ctx) {
  * Ô nhập tiền: người dùng gõ số, dấu phân cách nghìn được thêm ngay khi gõ nên
  * "ba mươi triệu" đọc được thành 30.000.000 chứ không phải một dãy tám chữ số.
  */
-function moneyInput(value = 0, placeholder = 'VD: 30.000.000') {
+function moneyInput(value = 0, placeholder = t('VD: 30.000.000')) {
+  const grouping = () => (getLang() === 'en' ? 'en-US' : 'vi-VN');
   const input = el('input.input.input--money', {
     type: 'text',
     inputmode: 'numeric',
     autocomplete: 'off',
     placeholder,
-    value: value ? Number(value).toLocaleString('vi-VN') : '',
+    value: value ? Number(value).toLocaleString(grouping()) : '',
   });
   input.addEventListener('input', () => {
     const digits = input.value.replace(/\D/g, '').slice(0, 12);
-    input.value = digits ? Number(digits).toLocaleString('vi-VN') : '';
+    input.value = digits ? Number(digits).toLocaleString(grouping()) : '';
   });
   return input;
 }
 
 const readMoney = (input) => Number(input.value.replace(/\D/g, '')) || 0;
 
-const periodEvery = (period) => (period === 'week' ? 'mỗi tuần' : 'mỗi tháng');
-const periodUnit = (period) => (period === 'week' ? 'tuần' : 'tháng');
+const periodEvery = (period) => (period === 'week' ? t('mỗi tuần') : t('mỗi tháng'));
+const periodUnit = (period) => (period === 'week' ? t('tuần') : t('tháng'));
 
 /**
  * Số tiền phải để dành mỗi kỳ để kịp hạn.
@@ -329,21 +334,23 @@ function savingPlan({ target, saved = 0, deadline, period = 'month', today }) {
 }
 
 function calcLines({ target, saved, deadline, period, today }) {
-  if (!target) return [el('p.ekkocalc__hint', {}, 'Nhập số tiền mục tiêu để Ekko tính giúp bạn.')];
-  if (!deadline) return [el('p.ekkocalc__hint', {}, 'Chọn thời hạn để Ekko chia số tiền theo từng kỳ.')];
+  if (!target) return [el('p.ekkocalc__hint', {}, t('Nhập số tiền mục tiêu để Ekko tính giúp bạn.'))];
+  if (!deadline) return [el('p.ekkocalc__hint', {}, t('Chọn thời hạn để Ekko chia số tiền theo từng kỳ.'))];
 
   const plan = savingPlan({ target, saved, deadline, period, today });
-  if (plan.expired) return [el('p.ekkocalc__hint', {}, 'Thời hạn đã qua. Chọn một mốc trong tương lai để Ekko tính lại.')];
+  if (plan.expired) return [el('p.ekkocalc__hint', {}, t('Thời hạn đã qua. Chọn một mốc trong tương lai để Ekko tính lại.'))];
 
   return [
     el('p.ekkocalc__line', {}, [
-      'Cần tiết kiệm ',
+      `${t('Cần tiết kiệm')} `,
       el('b', {}, vnd(plan.perPeriod)),
       ` ${periodEvery(period)}`,
     ]),
     el('p.ekkocalc__sub', {}, saved > 0
-      ? `trong ${plan.periods} ${periodUnit(period)} để bù ${vnd(plan.remaining)} còn thiếu`
-      : `trong ${plan.periods} ${periodUnit(period)} để đạt ${vnd(target)}`),
+      ? t('trong {n} {unit} để bù {amount} còn thiếu',
+        { n: plan.periods, unit: periodUnit(period), amount: vnd(plan.remaining) })
+      : t('trong {n} {unit} để đạt {amount}',
+        { n: plan.periods, unit: periodUnit(period), amount: vnd(target) })),
   ];
 }
 

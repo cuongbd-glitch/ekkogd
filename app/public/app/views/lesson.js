@@ -7,14 +7,15 @@
  */
 import { api, el, getOverlayRoot, guard, lockScroll, mount, renderText, spriteIcon, toast, unlockScroll } from '/shared/client.js';
 import { celebrate, celebrateRewards } from '../ui.js';
+import { t } from '../i18n.js';
 
 export async function openLesson(lessonId, ctx) {
-  const data = await guard(() => api.get(`/api/learn/lessons/${lessonId}`), 'Không mở được bài học');
+  const data = await guard(() => api.get(`/api/learn/lessons/${lessonId}`), t('Không mở được bài học'));
   if (!data) return;
 
   const { lesson, frames } = data;
   if (!frames.length) {
-    toast('Bài học này chưa có nội dung', 'error');
+    toast(t('Bài học này chưa có nội dung'), 'error');
     return;
   }
 
@@ -29,7 +30,7 @@ export async function openLesson(lessonId, ctx) {
   const player = el('div.player', { role: 'dialog', 'aria-modal': 'true', 'aria-label': lesson.title }, [
     segments,
     el('div.player__head', {}, [
-      el('button.iconbtn', { onclick: close, 'aria-label': 'Đóng bài học' }, '✕'),
+      el('button.iconbtn', { onclick: close, 'aria-label': t('Đóng bài học') }, '✕'),
       el('strong', {}, `${lesson.module_title} · ${lesson.title}`),
     ]),
     stage,
@@ -62,13 +63,13 @@ export async function openLesson(lessonId, ctx) {
 
     const advance = () => (isLast ? finish() : goTo(index + 1));
 
-    const nextButton = el('button.btn.btn--block', { onclick: advance }, isLast ? 'Hoàn thành bài học' : 'Tiếp tục');
+    const nextButton = el('button.btn.btn--block', { onclick: advance }, isLast ? t('Hoàn thành bài học') : t('Tiếp tục'));
     const setReady = (ready) => { nextButton.disabled = !ready; };
 
     mount(stage, renderer(frame, { setReady, onQuizAnswer: recordQuiz }));
 
     mount(foot, el('div', { style: { display: 'flex', gap: '10px' } }, [
-      index > 0 ? el('button.btn.btn--ghost', { onclick: () => goTo(index - 1), 'aria-label': 'Quay lại' }, [spriteIcon('chevron-left-01-stroke', 20)]) : null,
+      index > 0 ? el('button.btn.btn--ghost', { onclick: () => goTo(index - 1), 'aria-label': t('Quay lại') }, [spriteIcon('chevron-left-01-stroke', 20)]) : null,
       nextButton,
     ]));
   }
@@ -81,29 +82,31 @@ export async function openLesson(lessonId, ctx) {
   async function finish() {
     const result = await guard(
       () => api.post(`/api/learn/lessons/${lesson.id}/complete`, { quizCorrect, quizTotal: quizAnswered }),
-      'Không lưu được kết quả',
+      t('Không lưu được kết quả'),
     );
     if (!result) return;
 
     close();
 
     if (result.replay) {
-      toast('Bạn đã hoàn thành bài này trước đó. Ôn lại luôn tốt.', 'success');
+      toast(t('Bạn đã hoàn thành bài này trước đó. Ôn lại luôn tốt.'), 'success');
     } else {
       await celebrateRewards(result.rewards, {
-        title: 'Hoàn thành bài học',
-        subtitle: quizAnswered ? `Bạn trả lời đúng ${quizCorrect}/${quizAnswered} câu hỏi.` : lesson.title,
+        title: t('Hoàn thành bài học'),
+        subtitle: quizAnswered
+          ? t('Bạn trả lời đúng {right}/{total} câu hỏi.', { right: quizCorrect, total: quizAnswered })
+          : lesson.title,
       });
 
       if (result.moduleCompleted) {
         await celebrate({
-          title: 'Hoàn thành mô-đun',
-          subtitle: `Bạn đã học xong "${result.moduleTitle}".`,
+          title: t('Hoàn thành mô-đun'),
+          subtitle: t('Bạn đã học xong "{title}".', { title: result.moduleTitle }),
           image: '/assets/lessons/ke-hoach-12-thang.svg',
           stats: [`+${result.moduleRewards?.xp ?? 0} XP`],
           badges: result.moduleRewards?.badges || [],
           levelUp: result.moduleRewards?.levelUp || null,
-          actionLabel: 'Đi tiếp',
+          actionLabel: t('Đi tiếp'),
         });
       }
     }
@@ -157,7 +160,7 @@ function interactiveFrame(payload, { setReady }) {
   setReady(hotspots.length === 0);
 
   const note = el('div.hotspot-note', { hidden: true });
-  const counter = el('p.frame__caption', {}, `Đã xem 0/${hotspots.length} điểm`);
+  const counter = el('p.frame__caption', {}, t('Đã xem {seen}/{total} điểm', { seen: 0, total: hotspots.length }));
 
   const wrap = el('div.hotspot-wrap', {}, [
     el('img', { src: payload.image, alt: payload.alt || '', loading: 'lazy' }),
@@ -170,7 +173,7 @@ function interactiveFrame(payload, { setReady }) {
         event.currentTarget.dataset.seen = 'true';
         note.hidden = false;
         mount(note, el('strong', {}, spot.label), el('p', {}, spot.text));
-        counter.textContent = `Đã xem ${seen.size}/${hotspots.length} điểm`;
+        counter.textContent = t('Đã xem {seen}/{total} điểm', { seen: seen.size, total: hotspots.length });
         if (seen.size === hotspots.length) setReady(true);
       },
     }, String(i + 1))),
@@ -206,7 +209,7 @@ function quizFrame(payload, { setReady, onQuizAnswer }) {
 
       explain.hidden = false;
       explain.textContent = option.explain
-        || (option.correct ? 'Chính xác.' : 'Chưa đúng. Đáp án đúng đã được tô sáng.');
+        || (option.correct ? t('Chính xác.') : t('Chưa đúng. Đáp án đúng đã được tô sáng.'));
       setReady(true);
       event.currentTarget.scrollIntoView({ block: 'nearest' });
     },

@@ -35,11 +35,13 @@ const section = (title) => console.log(`\n${title}`);
 // --- a cookie-aware fetch ------------------------------------------------
 const jars = new Map();
 
-async function call(jar, method, path, body) {
+async function call(jar, method, path, body, { lang } = {}) {
   const headers = {};
   const cookie = jars.get(jar);
   if (cookie) headers.cookie = cookie;
   if (body !== undefined) headers['content-type'] = 'application/json';
+  // Ngôn ngữ app người dùng yêu cầu; Admin portal không gửi header này.
+  if (lang) headers['x-lang'] = lang;
 
   const response = await fetch(`${BASE}${path}`, {
     method,
@@ -60,11 +62,12 @@ async function call(jar, method, path, body) {
   return { status: response.status, json, headers: response.headers };
 }
 
-const get = (jar, path) => call(jar, 'GET', path);
-const post = (jar, path, body = {}) => call(jar, 'POST', path, body);
-const patch = (jar, path, body = {}) => call(jar, 'PATCH', path, body);
-const put = (jar, path, body = {}) => call(jar, 'PUT', path, body);
-const del = (jar, path) => call(jar, 'DELETE', path);
+const get = (jar, path, opts) => call(jar, 'GET', path, undefined, opts);
+const getEn = (jar, path) => call(jar, 'GET', path, undefined, { lang: 'en' });
+const post = (jar, path, body = {}, opts) => call(jar, 'POST', path, body, opts);
+const patch = (jar, path, body = {}, opts) => call(jar, 'PATCH', path, body, opts);
+const put = (jar, path, body = {}, opts) => call(jar, 'PUT', path, body, opts);
+const del = (jar, path, opts) => call(jar, 'DELETE', path, undefined, opts);
 
 // --- server lifecycle ----------------------------------------------------
 function startServer() {
@@ -713,6 +716,125 @@ async function main() {
 
     check('Người học không đổi được concept',
       (await put('member', '/api/admin/concepts/active', { code: 'islands' })).status === 403);
+
+    section('Hai ngôn ngữ (tiếng Việt · tiếng Anh)');
+    const mapVi = (await get('member', '/api/learn/map')).json;
+    const mapEn = (await getEn('member', '/api/learn/map')).json;
+    check('Không gửi x-lang thì nội dung là tiếng Việt',
+      mapVi.entries[0].title === 'Bắt đầu với tiền của bạn', mapVi.entries[0].title);
+    check('x-lang: en dịch tên mô đun',
+      mapEn.entries[0].title === 'Start with your money', mapEn.entries[0].title);
+    check('x-lang: en dịch tên bài học',
+      mapEn.entries.some((e) => e.title === 'Where does your money go?'));
+    check('Dịch không đụng tới cấu trúc bản đồ',
+      mapEn.entries.length === mapVi.entries.length
+      && mapEn.entries.every((e, i) => e.type === mapVi.entries[i].type && e.id === mapVi.entries[i].id
+        && e.locked === mapVi.entries[i].locked));
+
+    const langUnknown = (await get('member', '/api/learn/map', { lang: 'fr' })).json;
+    check('Ngôn ngữ chưa hỗ trợ thì về tiếng Việt',
+      langUnknown.entries[0].title === 'Bắt đầu với tiền của bạn');
+
+    const worldEn = (await getEn('member', '/api/me/world')).json;
+    // Cấp 1 đã bị một kiểm thử Admin phía trên đổi tên, nên soi cấp cuối.
+    const topLevelEn = worldEn.levels.find((l) => l.order_index === 6);
+    check('Dịch tên cấp độ', topLevelEn.name === 'Prosperous Piggy', topLevelEn.name);
+    check('Dịch tên chức năng',
+      worldEn.features.map((f) => f.name).join(', ') === 'Explore, Budget, Financial goals, Expense log',
+      worldEn.features.map((f) => f.name).join(', '));
+
+    const expensesEn = (await getEn('member', '/api/expenses')).json;
+    check('Dịch nhãn khoảng thời gian', expensesEn.label === 'This month', expensesEn.label);
+    check('Dịch tên nhóm chi tiêu',
+      expensesEn.categories.some((c) => c.name === 'Food & drink')
+      && expensesEn.categories.some((c) => c.name === 'Other'));
+    check('Ghi chú do người dùng tự gõ thì giữ nguyên',
+      (await getEn('member', '/api/expenses?range=month')).json.expenses
+        .every((e) => !e.note || typeof e.note === 'string'));
+
+    const badgesEn = (await getEn('member', '/api/me/badges')).json;
+    check('Dịch tên và mô tả huy hiệu',
+      badgesEn.all[0].name === 'First lesson'
+      && badgesEn.all[0].description === 'Finish your very first lesson.',
+      `${badgesEn.all[0].name} / ${badgesEn.all[0].description}`);
+
+    const goalsEn = (await getEn('member', '/api/goals')).json;
+    check('Dịch nhóm và tên mục tiêu gợi ý',
+      goalsEn.templates[0].label === 'Safety'
+      && goalsEn.templates[0].templates[0].name === 'Emergency fund');
+    check('Dịch kỳ tiết kiệm', goalsEn.periods.month === 'Monthly' && goalsEn.periods.week === 'Weekly');
+
+    const firstLessonId = mapEn.entries.find((e) => e.type === 'lesson').id;
+    const lessonEn = (await getEn('member', `/api/learn/lessons/${firstLessonId}`)).json;
+    check('Dịch tiêu đề và mô đun của bài học',
+      lessonEn.lesson.title === 'Where does your money go?'
+      && lessonEn.lesson.module_title === 'Start with your money');
+    // Nội dung khung bài là phần dài nhất; sót một câu là lẫn ngôn ngữ ngay.
+    // `đ` là đơn vị tiền, có mặt trong cả bản tiếng Anh, nên không tính là sót.
+    const VIETNAMESE = /[ăâêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/i;
+    const frameText = JSON.stringify(lessonEn.frames);
+    const leftover = frameText.match(new RegExp(`[^"]{0,40}${VIETNAMESE.source}[^"]{0,40}`, 'i'));
+    check('Không còn chữ tiếng Việt trong nội dung khung bài', !leftover, leftover?.[0]);
+
+    const quizEn = (await getEn('member', '/api/learn/modules/bat-dau-voi-tien-cua-ban')).json;
+    check('Dịch câu hỏi và đáp án trắc nghiệm',
+      quizEn.quiz.questions[0].question.startsWith('Which spending category')
+      && quizEn.quiz.questions[0].options.every((o) => !VIETNAMESE.test(o.text)),
+      quizEn.quiz.questions[0].question);
+
+    const badMonthEn = await put('member', '/api/budget', { month: 'thang-9', income: 1, items: [] }, { lang: 'en' });
+    check('Dịch cả thông báo lỗi',
+      badMonthEn.status === 400 && badMonthEn.json.error === 'The month must look like YYYY-MM',
+      badMonthEn.json.error);
+
+    // Admin gửi kèm x-lang cũng vẫn nhận bản gốc: đó là bản đang được biên tập.
+    const adminEn = (await getEn('admin', '/api/admin/content/tree')).json;
+    check('Admin portal vẫn thấy bản gốc tiếng Việt',
+      adminEn[0].title === 'Bắt đầu với tiền của bạn', adminEn[0].title);
+
+    section('Ekko bot nói hai thứ tiếng');
+    const streakEn = await post('member', '/api/bot/message', { text: 'How is my streak?' }, { lang: 'en' });
+    check('Câu hỏi tiếng Anh vẫn khớp đúng ý định',
+      streakEn.json.reply.kind === 'status_streak', streakEn.json.reply.kind);
+    check('Bot trả lời bằng tiếng Anh',
+      /your streak/i.test(streakEn.json.reply.text), streakEn.json.reply.text);
+
+    const lessonAskEn = await post('member', '/api/bot/message', { text: 'What is an emergency fund?' }, { lang: 'en' });
+    check('Tìm được nội dung bài học từ câu hỏi tiếng Anh',
+      lessonAskEn.json.reply.kind === 'lesson'
+      && !VIETNAMESE.test(lessonAskEn.json.reply.text),
+      lessonAskEn.json.reply.kind);
+
+    const logEn = await post('member', '/api/bot/message', { text: 'coffee 35k' }, { lang: 'en' });
+    check('Ghi chi tiêu qua chat, xác nhận bằng tiếng Anh',
+      logEn.json.reply.kind === 'expense_logged' && /^Logged \*\*35,000đ\*\*/.test(logEn.json.reply.text),
+      logEn.json.reply.text);
+
+    const historyVi = (await get('member', '/api/bot/history?limit=2')).json.messages;
+    const historyEn = (await getEn('member', '/api/bot/history?limit=2')).json.messages;
+    check('Mở lại sổ chat bằng tiếng Việt thì câu bot đọc tiếng Việt',
+      historyVi.at(-1).text.startsWith('Đã ghi **35.000đ**'), historyVi.at(-1).text);
+    check('Mở lại sổ chat bằng tiếng Anh thì câu bot đọc tiếng Anh',
+      historyEn.at(-1).text.startsWith('Logged **35,000đ**'), historyEn.at(-1).text);
+    check('Câu người dùng tự gõ không bị dịch',
+      historyVi.at(-2).text === 'coffee 35k' && historyEn.at(-2).text === 'coffee 35k');
+    await del('member', `/api/expenses/${logEn.json.reply.expense.id}`);
+
+    // Câu trả lời có số liệu cũng phải đọc lại được: sổ chat lưu mẫu câu và dữ
+    // liệu thô, nên con số của lúc nói vẫn giữ nguyên khi đổi ngôn ngữ.
+    const streakVi = await post('member', '/api/bot/message', { text: 'Streak của tôi thế nào?' });
+    const afterStreakEn = (await getEn('member', '/api/bot/history?limit=1')).json.messages[0];
+    const afterStreakVi = (await get('member', '/api/bot/history?limit=1')).json.messages[0];
+    check('Câu trả lời về streak nói lại được bằng tiếng Anh',
+      /^Your streak is/.test(afterStreakEn.text), afterStreakEn.text);
+    check('Vẫn đọc được nguyên văn tiếng Việt',
+      afterStreakVi.text === streakVi.json.reply.text, afterStreakVi.text);
+
+    const lessonVi = await post('member', '/api/bot/message', { text: 'Quỹ khẩn cấp là gì?' });
+    check('Câu trả lời trích bài học nói lại được bằng tiếng Anh',
+      lessonVi.json.reply.kind === 'lesson'
+      && !VIETNAMESE.test((await getEn('member', '/api/bot/history?limit=1')).json.messages[0].text),
+      (await getEn('member', '/api/bot/history?limit=1')).json.messages[0].text.slice(0, 90));
 
     section('Ảnh hoá đơn');
     // JPEG bé xíu, đủ chữ ký đầu tệp để server nhận là ảnh thật.

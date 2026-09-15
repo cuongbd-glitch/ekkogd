@@ -15,6 +15,7 @@ import { extractNote, guessCategory, parseAmount } from '../services/nlp.js';
 import { appendMessages, expenseLoggedReply } from '../services/botLog.js';
 import { GOAL_GROUPS, GOAL_PERIODS, templateByCode } from '../services/goalTemplates.js';
 import { alertLine, expenseAlerts } from '../services/spendingAlerts.js';
+import { langOf } from '../i18n/index.js';
 import { receiptFile, removeReceipt, saveReceipt, checkReceipt } from '../services/receipts.js';
 import { keyState, readReceipt } from '../services/receiptAI.js';
 
@@ -348,7 +349,7 @@ featureRouter.get('/api/expenses', ({ user, url }) => {
  * Ảnh hoá đơn (nếu có) được ghi **sau** khi có id khoản chi, vì tên tệp mang id đó
  * — có vậy nhìn thư mục là biết ảnh thuộc khoản nào.
  */
-export async function createExpense(userId, body, source = 'manual') {
+export async function createExpense(userId, body, source = 'manual', lang = 'vi') {
   const amount = positiveAmount(body.amount);
   const category = resolveCategory(body);
   const spentOn = body.spentOn && DAY_RE.test(body.spentOn) ? body.spentOn : dayKey();
@@ -370,7 +371,7 @@ export async function createExpense(userId, body, source = 'manual') {
     category,
     rewards,
     // Khoản chi vẫn được lưu; cảnh báo là lời nhắc, không phải chặn.
-    alerts: expenseAlerts(userId, expense, category),
+    alerts: expenseAlerts(userId, expense, category, lang),
   };
 }
 
@@ -398,8 +399,8 @@ featureRouter.post('/api/expenses/scan', async ({ body }) => {
   return { ...read, categoryId: category?.id ?? null, categoryName: category?.name ?? null };
 });
 
-featureRouter.post('/api/expenses', async ({ user, body }) => {
-  const created = await createExpense(user.id, body, 'manual');
+featureRouter.post('/api/expenses', async ({ user, body, req }) => {
+  const created = await createExpense(user.id, body, 'manual', langOf(req));
   return { ...created, ...expensePayload(user.id, resolveRange({ month: created.expense.spent_on.slice(0, 7) })) };
 });
 
@@ -416,7 +417,8 @@ featureRouter.post('/api/expenses', async ({ user, body }) => {
  * The expense's own source stays `manual`: the member typed it themselves,
  * parsing is only an input method.
  */
-featureRouter.post('/api/expenses/quick', async ({ user, body }) => {
+featureRouter.post('/api/expenses/quick', async ({ user, body, req }) => {
+  const lang = langOf(req);
   const text = String(body.text || '').trim();
   if (!text) throw bad('Bạn chưa nhập gì');
   if (text.length > 200) throw bad('Nội dung quá dài');
@@ -432,16 +434,25 @@ featureRouter.post('/api/expenses/quick', async ({ user, body }) => {
     amount: parsed.amount,
     categoryId: category?.id,
     note: note || category?.name || null,
-  }, 'manual');
+  }, 'manual', lang);
 
-  const reply = expenseLoggedReply({ amount: parsed.amount, category, note });
+  const reply = expenseLoggedReply({ amount: parsed.amount, category, note }, lang);
   appendMessages(user.id, [
     { role: 'user', text },
     // rewards: null — thanh ghi nhanh đã hiện phần thưởng ngay lúc ghi rồi.
     {
       role: 'bot',
-      text: reply.text + alertLine(created.alerts),
-      meta: { kind: reply.kind, action: reply.action, suggestions: reply.suggestions, rewards: null },
+      text: reply.text + alertLine(created.alerts, lang),
+      // `logged` và `alerts` là dữ liệu thô: mở lại sổ ở ngôn ngữ khác thì câu
+      // này được dựng lại, không phải đọc bản đã viết bằng tiếng cũ.
+      meta: {
+        kind: reply.kind,
+        action: reply.action,
+        suggestions: reply.suggestions,
+        rewards: null,
+        logged: reply.logged,
+        alerts: created.alerts,
+      },
     },
   ], 'quick');
 

@@ -18,6 +18,7 @@
  */
 import { api, el, toast, spriteIcon } from '/shared/client.js';
 import { openModuleQuiz } from './quiz.js';
+import { t } from '../i18n.js';
 
 /**
  * Lối đi lượn qua lại bằng cách dịch ngang từng nút theo một nhịp cố định. Mảng
@@ -118,8 +119,8 @@ export function pathBoard(ctx, { entries }) {
 
 /** Câu nhắc khi bấm vào bài còn khoá — hai lý do khoá cần hai câu khác nhau. */
 const lockedNote = (entry) => (entry.lockReason === 'level'
-  ? 'Mô-đun này mở khoá ở cấp cao hơn.'
-  : 'Học xong bài phía trên đã, rồi bài này mới mở.');
+  ? t('Mô-đun này mở khoá ở cấp cao hơn.')
+  : t('Học xong bài phía trên đã, rồi bài này mới mở.'));
 
 /**
  * Tên mô-đun ở đầu khối. Chỉ mỗi cái tên — số thứ tự mô-đun không giúp người học
@@ -128,7 +129,7 @@ const lockedNote = (entry) => (entry.lockReason === 'level'
  */
 const unitHead = (module) => el('div.pathsection__head', {}, [
   el('span.pathsection__title', {}, [module.emoji ? `${module.emoji} ` : '', module.title]),
-  module.locked ? el('span.pathsection__lock', {}, `Mở khoá ở cấp ${module.unlock_level}`) : null,
+  module.locked ? el('span.pathsection__lock', {}, t('Mở khoá ở cấp {n}', { n: module.unlock_level })) : null,
 ]);
 
 /**
@@ -183,7 +184,7 @@ function lessonNode(entry, ctx) {
 
 function quizNode(entry, ctx) {
   const open = async () => {
-    if (entry.locked) return toast('Học hết bài trong mô đun này để mở phần trắc nghiệm.', 'error');
+    if (entry.locked) return toast(t('Học hết bài trong mô đun này để mở phần trắc nghiệm.'), 'error');
     const module = await api.get(`/api/learn/modules/${encodeURIComponent(entry.moduleSlug)}`);
     return openModuleQuiz(module, ctx);
   };
@@ -192,7 +193,7 @@ function quizNode(entry, ctx) {
     kind: 'quiz',
     state: entry.locked ? 'locked' : entry.completed ? 'done' : 'open',
     icon: ICON.quiz,
-    label: `Trắc nghiệm · Mô-đun ${entry.moduleOrder}`,
+    label: t('Trắc nghiệm · Mô-đun {n}', { n: entry.moduleOrder }),
     onclick: open,
   });
 }
@@ -216,9 +217,9 @@ function node({ kind = 'lesson', state, icon, label, caption = null, bubble = nu
     el('div.pathnode__seat', {}, [
       el('button.pathnode__dot', {
         onclick,
-        'aria-label': STATE_NOTE[state] ? `${label} — ${STATE_NOTE[state]}` : label,
+        'aria-label': STATE_NOTE[state] ? `${label} — ${t(STATE_NOTE[state])}` : label,
       }, [spriteIcon(icon, 24)]),
-      pig ? el('img.pathnode__pig', { src: '/assets/levels/pig-1.png', alt: 'Bạn đang ở đây' }) : null,
+      pig ? el('img.pathnode__pig', { src: '/assets/levels/pig-1.png', alt: t('Bạn đang ở đây') }) : null,
     ]),
     caption ? el('span.pathnode__caption', {}, caption) : null,
   ]);

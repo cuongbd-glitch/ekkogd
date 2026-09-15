@@ -242,6 +242,60 @@ không trôi lơ lửng trên chữ.
 
 ---
 
+## Hai ngôn ngữ: tiếng Việt và tiếng Anh
+
+App người dùng chạy được ở hai thứ tiếng. Tiếng Việt là bản gốc; tiếng Anh là bản
+dịch. Nút chuyển nằm **ngoài khung điện thoại**, góc trên phải trang: nó là công
+cụ của bản demo, không phải một phần giao diện app, nên không chiếm chỗ trong màn
+hình 402pt. Lựa chọn được nhớ trong `localStorage`, và `?lang=en` cho phép mở
+thẳng bản tiếng Anh (tiện khi gửi link hoặc chụp ảnh).
+
+Admin portal **không** đổi ngôn ngữ: đó là nơi biên tập bản gốc tiếng Việt.
+
+### Hai lớp, hai chỗ
+
+| Lớp | Ở đâu | Cách làm |
+|---|---|---|
+| Câu chữ giao diện | `public/app/i18n.js` | `t('câu tiếng Việt')` ngay tại chỗ dùng |
+| Nội dung (bài học, nhóm chi tiêu, huy hiệu, cấp độ…) | `server/i18n/en.js` | dịch một lần lúc gói JSON trả về |
+
+Cả hai bảng đều **tra theo chính câu tiếng Việt**, không theo mã khoá. Lý do:
+chỗ gọi vẫn đọc được bằng tiếng Việt; thiếu bản dịch thì tự rơi về tiếng Việt
+chứ không lòi ra `hud.back`; và bảng đọc như một bảng đối chiếu song ngữ nên
+người viết nội dung soát được mà không cần mở mã.
+
+Nội dung nằm trong cơ sở dữ liệu và do Admin biên tập, nên bản dịch **không** để
+trong bảng dữ liệu: thêm cột `*_en` là bắt Admin nhập hai lần và mỗi bảng lại
+thêm một chỗ phải sửa. Thay vào đó app người dùng gửi header `x-lang`, và
+`server/index.js` dịch **một chỗ duy nhất** — lúc `sendJson` — bằng cách đi hết
+cây JSON và đổi mọi chuỗi khớp trọn vẹn một khoá trong bảng. Hệ quả: sửa một câu
+tiếng Việt trong Admin thì bản dịch của câu đó rơi ra ngoài bảng và câu ấy hiện
+tiếng Việt — đúng như vậy, vì nội dung mới thì phải dịch lại.
+
+Chữ do **người dùng tự gõ** (ghi chú khoản chi, tên mục tiêu, câu nhắn cho Ekko
+bot) không bao giờ bị dịch.
+
+### Số, tiền và ngày
+
+Tiền vẫn là VNĐ ở cả hai ngôn ngữ, chỉ cách viết đổi: `50.000đ` ↔ `50,000đ`.
+Ngày tiếng Anh viết tên tháng (`10 Sep 2026`) vì `10/09` đọc ra hai ngày khác
+nhau tuỳ người. Tên tháng của màn Ngân sách cũng vậy: "Tháng 9/2026" ↔
+"September 2026" — dịch từng chữ sẽ ra "Month 9/2026".
+
+### Ekko bot
+
+Bot trả lời bằng ngôn ngữ đang chọn, và **sổ hội thoại cũng đọc lại được ở ngôn
+ngữ khác**. Câu do máy sinh ra không chỉ lưu chữ: nó lưu kèm mẫu câu và dữ liệu
+thô (`meta.say`, `meta.logged`), nên mở lại sổ bằng tiếng Anh thì câu nói tháng
+trước được dựng lại nguyên số liệu của tháng trước, chứ không tính lại theo hôm
+nay. Câu trả lời tự do của phần AI thì giữ nguyên như lúc nói.
+
+Phần dò ý định nhận từ khoá cả hai thứ tiếng, và việc tìm trong nội dung bài học
+chạy trên **bản đã dịch** — câu hỏi tiếng Anh mà đem so với nội dung tiếng Việt
+thì không bao giờ khớp.
+
+---
+
 ## Concept giao diện của màn Khám phá
 
 Cùng một lộ trình học có thể được kể bằng nhiều cách. Mỗi cách là một **concept**;
@@ -611,6 +665,7 @@ app/
 │   ├── db.js                 lược đồ SQLite + helper truy vấn
 │   ├── auth.js               SSO, phiên đăng nhập, phân quyền
 │   ├── lib/                  router, JWT HS256, tiện ích ngày giờ
+│   ├── i18n/                 bảng đối chiếu Việt–Anh cho nội dung, áp lúc trả JSON
 │   ├── services/
 │   │   ├── streak.js         luật streak và đóng băng 3 ngày
 │   │   ├── progression.js    XP, cấp độ, bộ luật huy hiệu
@@ -626,9 +681,10 @@ app/
 ├── public/
 │   ├── shared/               token thiết kế Ekko + client dùng chung
 │   ├── app/                  giao diện người học (trong khung iPhone)
+│   │   └── i18n.js           câu chữ giao diện + nút chuyển ngôn ngữ
 │   ├── admin/                Admin portal
 │   └── assets/               artwork đảo, nhân vật, mascot, logo, khung máy
-└── test/smoke.js             152 kiểm tra end-to-end
+└── test/smoke.js             205 kiểm tra end-to-end
 ```
 
 Giao diện dùng ES module thuần, không bundler. Màu sắc, khoảng cách, bo góc và

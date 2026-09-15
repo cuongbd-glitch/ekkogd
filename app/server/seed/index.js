@@ -6,11 +6,14 @@ import { all, get, run, tx, getSetting, setSetting } from '../db.js';
 import { nowIso } from '../lib/time.js';
 import { BADGES, CATEGORIES, FEATURES, LEVELS, MODULE_EMOJI } from './catalogue.js';
 import { MODULES } from './curriculum.js';
+import { EN } from '../i18n/en.js';
+import { parseSaid } from './chatReplay.js';
 
 const CURRICULUM_VERSION = '1';
 const LEVELS_VERSION = '2';
 const MODULE_QUIZ_VERSION = '1';
 const CATEGORY_LIMITS_VERSION = '1';
+const CHAT_LOGGED_VERSION = '3';
 
 export function seed() {
   tx(() => {
@@ -32,6 +35,10 @@ export function seed() {
     if (getSetting('module_quiz_version') !== MODULE_QUIZ_VERSION) {
       liftQuizzesToModules();
       setSetting('module_quiz_version', MODULE_QUIZ_VERSION);
+    }
+    if (getSetting('chat_logged_version') !== CHAT_LOGGED_VERSION) {
+      backfillChatLogged();
+      setSetting('chat_logged_version', CHAT_LOGGED_VERSION);
     }
   });
 }
@@ -259,5 +266,83 @@ export function listSeedTables() {
     modules: all('SELECT COUNT(*) n FROM modules')[0].n,
     lessons: all('SELECT COUNT(*) n FROM lessons')[0].n,
     frames: all('SELECT COUNT(*) n FROM frames')[0].n,
+  };
+}
+
+/**
+ * Câu xác nhận cũ trong sổ chat của Ekko bot chỉ có chữ, không có dữ liệu thô,
+ * nên không đọc lại được bằng ngôn ngữ khác. Lần này tách số tiền / nhóm / ghi
+ * chú ra khỏi câu đã lưu và đặt vào `meta.logged` — từ đó trở đi việc đổi ngôn
+ * ngữ dựng lại được cả những câu đã nói từ trước.
+ *
+ * Chỉ đọc và ghi phần `meta`; cột `text` giữ nguyên, nên chạy lại cũng không
+ * làm hỏng gì. Câu nào không khớp mẫu thì bỏ qua.
+ */
+function backfillChatLogged() {
+  const rows = all("SELECT id, text, meta FROM bot_messages WHERE role = 'bot'");
+  const frames = lessonFrames();
+
+  for (const row of rows) {
+    let meta = null;
+    try { meta = JSON.parse(row.meta || 'null'); } catch { continue; }
+    if (!meta) continue;
+
+    const next = { ...meta };
+    let changed = false;
+
+    if (!next.logged && !next.say) {
+      // Câu xác nhận ghi chi tiêu có dạng riêng; còn lại đều là mẫu trong `SAY`.
+      const logged = meta.kind === 'expense_logged' ? parseLoggedText(row.text) : null;
+      const said = logged ? null : parseSaid(row.text, frames);
+      if (logged) { next.logged = logged; changed = true; } else if (said) { next.say = said; changed = true; }
+    }
+
+    // Nhãn nút "Học bài …" cũng là một câu sinh ra từ mẫu, nên khôi phục luôn.
+    if (meta.action?.label && !meta.action.labelSay) {
+      const labelSay = parseSaid(meta.action.label, frames);
+      if (labelSay) { next.action = { ...meta.action, labelSay }; changed = true; }
+    }
+
+    if (changed) run('UPDATE bot_messages SET meta = ? WHERE id = ?', JSON.stringify(next), row.id);
+  }
+}
+
+/** Từng khung bài thành danh sách câu, đúng thứ tự Ekko bot vẫn ghép. */
+function lessonFrames() {
+  return all('SELECT payload FROM frames').map((row) => {
+    let payload = {};
+    try { payload = JSON.parse(row.payload || '{}'); } catch { /* bỏ khung hỏng */ }
+    return {
+      parts: [
+        payload.title, payload.body, payload.caption, payload.intro, payload.question,
+        ...(payload.hotspots || []).flatMap((h) => [h.label, h.text]),
+        ...(payload.options || []).map((o) => o.text),
+      ].filter(Boolean),
+    };
+  });
+}
+
+/**
+ * Tên nhóm chi tiêu trong câu cũ có thể đã là bản tiếng Anh (câu đó được viết
+ * lúc app đang chạy tiếng Anh). Lưu về **bản gốc tiếng Việt** để dịch xuôi được
+ * sang cả hai chiều.
+ */
+const VI_BY_EN = new Map(Object.entries(EN).map(([vi, en]) => [en, vi]));
+
+/** "Đã ghi **50.000đ** vào nhóm 🍜 **Ăn uống** (ăn sáng)." → dữ liệu thô. */
+function parseLoggedText(text) {
+  // `đ` hoặc `d`: bản rất cũ của app viết đơn vị tiền không có dấu.
+  const match = /\*\*([\d.,]+)[đd]\*\*\s*(?:vào nhóm|under)\s*(\S+)?\s*\*\*(.+?)\*\*(?:\s*\(([^)]*)\))?/u.exec(String(text || ''));
+  if (!match) return null;
+
+  const amount = Number(match[1].replace(/\D/g, ''));
+  if (!amount) return null;
+
+  const name = match[3].trim();
+  return {
+    amount,
+    categoryName: VI_BY_EN.get(name) || name,
+    categoryIcon: match[2] && !match[2].startsWith('**') ? match[2] : null,
+    note: match[4]?.trim() || null,
   };
 }

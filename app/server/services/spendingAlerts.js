@@ -17,6 +17,29 @@
  */
 import { all, get } from '../db.js';
 import { formatVnd, monthKey } from '../lib/time.js';
+import { tr } from '../i18n/index.js';
+
+/** Khung câu cảnh báo: có số và tên nhóm chen vào nên mỗi ngôn ngữ một mẫu. */
+const SAY = {
+  vi: {
+    largeTitle: (amount, name) => `${amount} cho một lần ${name.toLowerCase()}?`,
+    largeText: (name, limit) => `Mức này lớn bất thường cho một khoản ${name.toLowerCase()} thường ngày (trên ${limit}). Nếu bạn gõ nhầm số, sửa lại trong sổ chi tiêu nhé.`,
+    spikeTitle: (times) => `Gấp ${times} lần mức thường của bạn`,
+    spikeText: (name, median, amount) => `Bạn thường chi khoảng ${median} mỗi lần ở nhóm ${name}. Khoản này là ${amount}.`,
+    shareTitle: (share, name) => `Một khoản bằng ${share}% hạn mức ${name}`,
+    shareText: (name, planned, share) => `Hạn mức ${name} tháng này là ${planned}. Riêng khoản vừa ghi đã chiếm ${share}%.`,
+  },
+  en: {
+    largeTitle: (amount, name) => `${amount} in one go on ${name.toLowerCase()}?`,
+    largeText: (name, limit) => `That is unusually large for everyday ${name.toLowerCase()} (above ${limit}). If you mistyped the number, fix it in your expense log.`,
+    spikeTitle: (times) => `${times}× your usual amount`,
+    spikeText: (name, median, amount) => `You normally spend about ${median} at a time on ${name}. This one is ${amount}.`,
+    shareTitle: (share, name) => `One expense equals ${share}% of your ${name} budget`,
+    shareText: (name, planned, share) => `Your ${name} budget this month is ${planned}. This single entry takes ${share}% of it.`,
+  },
+};
+
+const line = (lang) => SAY[lang] || SAY.vi;
 
 /** Số bản ghi tối thiểu để "mức thường của bạn" có nghĩa. */
 const MIN_HISTORY = 5;
@@ -54,15 +77,14 @@ function categoryPlan(userId, categoryId, month) {
 }
 
 /**
- * @returns {Array<{code:string, tone:string, title:string, text:string}>}
+ * @returns {Array<{code:string, tone:string, title:string, text:string, data:object}>}
  *          Rỗng nếu khoản chi này bình thường. Phần tử đầu là cái đáng nói nhất.
  */
-export function expenseAlerts(userId, expense, category) {
+export function expenseAlerts(userId, expense, category, lang = 'vi') {
   const amount = Number(expense?.amount) || 0;
   if (amount <= 0) return [];
 
   const alerts = [];
-  const name = category?.name || 'Khác';
   const limit = category?.daily_limit > 0 ? category.daily_limit : null;
   const median = personalMedian(userId, expense.category_id, expense.id);
 
@@ -70,34 +92,71 @@ export function expenseAlerts(userId, expense, category) {
   const spike = median !== null && amount >= median * SPIKE_FACTOR;
 
   if (limit && amount >= limit && !normalForYou) {
-    alerts.push({
-      code: 'daily_large',
-      tone: 'warning',
-      title: `${formatVnd(amount)} cho một lần ${name.toLowerCase()}?`,
-      text: `Mức này lớn bất thường cho một khoản ${name.toLowerCase()} thường ngày (trên ${formatVnd(limit)}). Nếu bạn gõ nhầm số, sửa lại trong sổ chi tiêu nhé.`,
-    });
+    alerts.push(renderAlert({
+      code: 'daily_large', tone: 'warning',
+      // `data` là phần đủ để dựng lại câu ở ngôn ngữ khác. Sổ hội thoại của Ekko
+      // bot lưu nó lại, nên đổi ngôn ngữ thì cảnh báo cũ cũng đọc được.
+      data: { categoryName: category?.name || 'Khác', amount, limit },
+    }, lang));
   } else if (spike) {
-    alerts.push({
-      code: 'personal_spike',
-      tone: 'warning',
-      title: `Gấp ${Math.floor(amount / median)} lần mức thường của bạn`,
-      text: `Bạn thường chi khoảng ${formatVnd(median)} mỗi lần ở nhóm ${name}. Khoản này là ${formatVnd(amount)}.`,
-    });
+    alerts.push(renderAlert({
+      code: 'personal_spike', tone: 'warning',
+      data: { categoryName: category?.name || 'Khác', amount, median },
+    }, lang));
   }
 
   const planned = categoryPlan(userId, expense.category_id, expense.spent_on?.slice(0, 7) || monthKey());
   if (planned && amount >= planned * BUDGET_SHARE) {
-    const share = Math.round((amount / planned) * 100);
-    alerts.push({
-      code: 'budget_share',
-      tone: 'warning',
-      title: `Một khoản bằng ${share}% hạn mức ${name}`,
-      text: `Hạn mức ${name} tháng này là ${formatVnd(planned)}. Riêng khoản vừa ghi đã chiếm ${share}%.`,
-    });
+    alerts.push(renderAlert({
+      code: 'budget_share', tone: 'warning',
+      data: { categoryName: category?.name || 'Khác', amount, planned },
+    }, lang));
   }
 
   return alerts;
 }
 
+/**
+ * Dựng `title` và `text` của một cảnh báo từ `data`, ở ngôn ngữ đang chọn.
+ *
+ * Tách riêng để cùng một cảnh báo hiển thị được hai lần bằng hai thứ tiếng: một
+ * lần ngay khi ghi khoản chi, một lần nữa khi người dùng mở lại sổ hội thoại sau
+ * khi đã đổi ngôn ngữ.
+ */
+export function renderAlert(alert, lang = 'vi') {
+  const say = line(lang);
+  const d = alert.data || {};
+  const name = tr(d.categoryName || 'Khác', lang);
+  const money = (value) => formatVnd(value, lang);
+
+  if (alert.code === 'daily_large') {
+    return {
+      ...alert,
+      title: say.largeTitle(money(d.amount), name),
+      text: say.largeText(name, money(d.limit)),
+    };
+  }
+  if (alert.code === 'personal_spike') {
+    return {
+      ...alert,
+      title: say.spikeTitle(Math.floor(d.amount / d.median)),
+      text: say.spikeText(name, money(d.median), money(d.amount)),
+    };
+  }
+  if (alert.code === 'budget_share') {
+    const share = Math.round((d.amount / d.planned) * 100);
+    return {
+      ...alert,
+      title: say.shareTitle(share, name),
+      text: say.shareText(name, money(d.planned), share),
+    };
+  }
+  return alert;
+}
+
 /** Một dòng gọn để chèn vào câu trả lời của Ekko bot. */
-export const alertLine = (alerts) => (alerts.length ? `\n\n⚠️ **${alerts[0].title}** ${alerts[0].text}` : '');
+export const alertLine = (alerts, lang = 'vi') => {
+  if (!alerts?.length) return '';
+  const first = renderAlert(alerts[0], lang);
+  return `\n\n⚠️ **${first.title}** ${first.text}`;
+};

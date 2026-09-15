@@ -7,10 +7,21 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Ngôn ngữ gửi kèm mọi lời gọi API, để server trả nội dung (bài học, nhóm chi
+ * tiêu, huy hiệu…) đúng thứ tiếng. Chỉ app người dùng đặt giá trị này; Admin
+ * portal không đặt nên vẫn nhận nội dung gốc tiếng Việt.
+ */
+let apiLang = null;
+export const setApiLang = (lang) => { apiLang = lang || null; };
+
 async function request(method, path, body) {
   const response = await fetch(path, {
     method,
-    headers: body === undefined ? {} : { 'content-type': 'application/json' },
+    headers: {
+      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+      ...(apiLang ? { 'x-lang': apiLang } : {}),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: 'same-origin',
   });
@@ -66,12 +77,43 @@ export const clear = (node) => { while (node.firstChild) node.removeChild(node.f
 export const mount = (node, ...children) => { clear(node).append(...children.flat().filter(Boolean)); return node; };
 
 // --- formatting ---------------------------------------------------------
-export const vnd = (amount) => `${Math.round(Number(amount) || 0).toLocaleString('vi-VN')}đ`;
+/**
+ * Ngôn ngữ dùng để định dạng số và ngày. App người dùng gọi `setLocale('en')`
+ * khi người dùng đổi ngôn ngữ; Admin portal không gọi nên vẫn là tiếng Việt.
+ * Đơn vị tiền không đổi theo ngôn ngữ — tiền vẫn là VNĐ — chỉ cách nhóm chữ số
+ * và chữ viết tắt là đổi.
+ */
+const LOCALES = {
+  vi: {
+    number: 'vi-VN',
+    million: (value) => `${value.toFixed(value % 1 === 0 ? 0 : 1).replace('.', ',')} tr`,
+    day: (y, m, d) => `${d}/${m}/${y}`,
+    today: 'Hôm nay',
+    yesterday: 'Hôm qua',
+    daysAgo: (n) => `${n} ngày trước`,
+  },
+  en: {
+    number: 'en-US',
+    million: (value) => `${value.toFixed(value % 1 === 0 ? 0 : 1)}M`,
+    // "10/09" đọc ra hai ngày khác nhau tuỳ người, nên bản tiếng Anh viết tên
+    // tháng: 10 Sep 2026.
+    day: (y, m, d) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+      .format(new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)))),
+    today: 'Today',
+    yesterday: 'Yesterday',
+    daysAgo: (n) => `${n} days ago`,
+  },
+};
+
+let L = LOCALES.vi;
+export const setLocale = (lang) => { L = LOCALES[lang] || LOCALES.vi; };
+
+export const vnd = (amount) => `${Math.round(Number(amount) || 0).toLocaleString(L.number)}đ`;
 
 /** 1.250.000đ -> "1,25 tr" for tight spaces like chart labels. */
 export function vndShort(amount) {
   const n = Math.round(Number(amount) || 0);
-  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} tr`;
+  if (Math.abs(n) >= 1_000_000) return L.million(n / 1_000_000);
   if (Math.abs(n) >= 1_000) return `${Math.round(n / 1_000)}k`;
   return String(n);
 }
@@ -79,14 +121,14 @@ export function vndShort(amount) {
 export function formatDay(key) {
   if (!key) return '';
   const [y, m, d] = key.split('-');
-  return `${d}/${m}/${y}`;
+  return L.day(y, m, d);
 }
 
 export function relativeDay(key, today) {
-  if (key === today) return 'Hôm nay';
+  if (key === today) return L.today;
   const diff = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${key}T00:00:00Z`)) / 86400000);
-  if (diff === 1) return 'Hôm qua';
-  if (diff > 1 && diff < 7) return `${diff} ngày trước`;
+  if (diff === 1) return L.yesterday;
+  if (diff > 1 && diff < 7) return L.daysAgo(diff);
   return formatDay(key);
 }
 

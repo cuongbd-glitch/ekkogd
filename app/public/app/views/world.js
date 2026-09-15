@@ -8,6 +8,7 @@
  */
 import { api, el, spriteIcon, vnd } from '/shared/client.js';
 import { bar } from '../ui.js';
+import { t } from '../i18n.js';
 import { pathBoard, ICON } from './explore-path.js';
 
 const POSITIONS = ['nw', 'ne', 'sw', 'se'];
@@ -40,7 +41,7 @@ export default async function worldView(ctx) {
       el('div.isle__frame', {}, [
         el('img.isle__art', {
           src: level?.island_image || '/assets/islands/level-1.png',
-          alt: `Đảo của bạn: ${level?.name || ''}, cùng nhân vật chú heo`,
+          alt: t('Đảo của bạn: {name}, cùng nhân vật chú heo', { name: level?.name || '' }),
           fetchpriority: 'high',
         }),
       ]),
@@ -63,7 +64,7 @@ export default async function worldView(ctx) {
       return island({
         image: feature.island_image,
         label: feature.name,
-        alt: `Đảo ${feature.name}`,
+        alt: t('Đảo {name}', { name: feature.name }),
         position: POSITIONS[index],
         onclick: () => ctx.navigate(feature.route.replace('/app/#', '')),
         ...config,
@@ -75,15 +76,15 @@ export default async function worldView(ctx) {
   const cta = nextUp
     ? el('button.cta', { onclick: () => ctx.openLesson(nextUp.id) }, [
       el('div', { style: { minWidth: '0', flex: '1' } }, [
-        el('div.cta__label', {}, learning.lessonsDone ? 'Học tiếp' : 'Bắt đầu hành trình'),
+        el('div.cta__label', {}, learning.lessonsDone ? t('Học tiếp') : t('Bắt đầu hành trình')),
         el('div.cta__title', {}, nextUp.title),
       ]),
       el('span.cta__go', {}, [spriteIcon('chevron-right-01-stroke', 20)]),
     ])
     : el('button.cta', { onclick: () => ctx.navigate('/badges') }, [
       el('div', { style: { minWidth: '0', flex: '1' } }, [
-        el('div.cta__label', {}, 'Bạn đã học hết'),
-        el('div.cta__title', {}, 'Xem bộ sưu tập huy hiệu'),
+        el('div.cta__label', {}, t('Bạn đã học hết')),
+        el('div.cta__title', {}, t('Xem bộ sưu tập huy hiệu')),
       ]),
       el('span.cta__go', {}, [spriteIcon('chevron-right-01-stroke', 20)]),
     ]);
@@ -91,7 +92,9 @@ export default async function worldView(ctx) {
   const streakCard = el('div.card', {}, [
     el('div.card__head', {}, [
       el('span', { style: { fontSize: '22px' } }, streak.status === 'frozen' ? '🧊' : '🔥'),
-      el('h3', {}, streak.status === 'frozen' ? `Chuỗi ${streak.count} ngày đang đóng băng` : `Chuỗi ${streak.count} ngày`),
+      el('h3', {}, streak.status === 'frozen'
+        ? t('Chuỗi {n} ngày đang đóng băng', { n: streak.count })
+        : t('Chuỗi {n} ngày', { n: streak.count })),
     ]),
     el('p.muted', {}, streakMessage(streak)),
     el('div', { style: { display: 'flex', gap: '6px', marginTop: '12px' } },
@@ -102,24 +105,24 @@ export default async function worldView(ctx) {
         },
       }))),
     el('div.muted', { style: { marginTop: '8px', fontSize: '12px' } },
-      `Kỷ lục của bạn: ${streak.best} ngày · Đóng băng tối đa ${streak.maxFreezeDays} ngày`),
+      t('Kỷ lục của bạn: {best} ngày · Đóng băng tối đa {max} ngày', { best: streak.best, max: streak.maxFreezeDays })),
   ]);
 
   const progressCard = el('div.card', {}, [
-    el('div.card__head', {}, [el('h3', {}, 'Tiến độ học')]),
+    el('div.card__head', {}, [el('h3', {}, t('Tiến độ học'))]),
     el('div.stat-row', {}, [
-      el('b', {}, `${learning.lessonsDone}/${learning.lessonsTotal} bài học`),
+      el('b', {}, t('{done}/{total} bài học', { done: learning.lessonsDone, total: learning.lessonsTotal })),
       el('small', {}, `${learning.percent}%`),
     ]),
     el('div', { style: { marginTop: '8px' } }, [bar(learning.percent, learning.percent === 100 ? 'good' : '')]),
     el('div.stat-row', { style: { marginTop: '14px' } }, [
-      el('b', {}, `${badges.earned}/${badges.total} huy hiệu`),
-      el('button.btn.btn--sm.btn--ghost', { onclick: () => ctx.navigate('/badges') }, 'Xem tất cả'),
+      el('b', {}, t('{earned}/{total} huy hiệu', { earned: badges.earned, total: badges.total })),
+      el('button.btn.btn--sm.btn--ghost', { onclick: () => ctx.navigate('/badges') }, t('Xem tất cả')),
     ]),
     world.nextLevel
       ? el('p.muted', { style: { marginTop: '12px' } },
-        `Còn ${progress.xpToNextLevel} XP nữa là mở khoá ${world.nextLevel.name}.`)
-      : el('p.muted', { style: { marginTop: '12px' } }, 'Bạn đang ở cấp cao nhất.'),
+        t('Còn {xp} XP nữa là mở khoá {name}.', { xp: progress.xpToNextLevel, name: world.nextLevel.name }))
+      : el('p.muted', { style: { marginTop: '12px' } }, t('Bạn đang ở cấp cao nhất.')),
   ]);
 
   const today = await todaySnapshot();
@@ -174,17 +177,18 @@ function featureRail(ctx) {
     el('span.pathrail__dot', {}, [spriteIcon(ICON[feature.code] || ICON.story, 24)]),
     // Tên rút gọn cho vừa một dòng; tên đầy đủ vẫn nằm ở aria-label cho trình đọc
     // màn hình. Tên nào không có trong bảng thì dùng nguyên tên trong Admin.
-    el('span.pathrail__label', {}, RAIL_LABEL[feature.code] || feature.name),
+    el('span.pathrail__label', {}, RAIL_LABEL[feature.code] ? t(RAIL_LABEL[feature.code]) : feature.name),
   ])));
 }
 
 function streakMessage(streak) {
-  if (streak.count === 0) return 'Hoàn thành một bài học, hoặc ghi một khoản chi, lưu ngân sách, hoặc đặt/nạp một mục tiêu hôm nay để bắt đầu chuỗi.';
+  if (streak.count === 0) return t('Hoàn thành một bài học, hoặc ghi một khoản chi, lưu ngân sách, hoặc đặt/nạp một mục tiêu hôm nay để bắt đầu chuỗi.');
   if (streak.status === 'frozen') {
-    return `Bạn đã nghỉ ${streak.frozenDays} ngày. Còn ${streak.freezeDaysLeft} ngày để quay lại trước khi mất chuỗi.`;
+    return t('Bạn đã nghỉ {off} ngày. Còn {left} ngày để quay lại trước khi mất chuỗi.',
+      { off: streak.frozenDays, left: streak.freezeDaysLeft });
   }
-  if (streak.countedToday) return 'Hôm nay đã được tính. Hẹn gặp lại bạn ngày mai.';
-  return 'Hôm nay chưa được tính. Làm một việc bất kỳ để giữ chuỗi.';
+  if (streak.countedToday) return t('Hôm nay đã được tính. Hẹn gặp lại bạn ngày mai.');
+  return t('Hôm nay chưa được tính. Làm một việc bất kỳ để giữ chuỗi.');
 }
 
 /** A light summary of the month's money so the home screen is not all game. */
@@ -200,15 +204,15 @@ async function todaySnapshot() {
   const tone = percent > 100 ? 'over' : percent > 80 ? 'warn' : '';
 
   return el('div.card', {}, [
-    el('div.card__head', {}, [el('h3', {}, 'Tiền của bạn tháng này')]),
+    el('div.card__head', {}, [el('h3', {}, t('Tiền của bạn tháng này'))]),
     el('div.stat-row', {}, [
       el('span.stat-big', {}, vnd(spent)),
-      el('small', {}, planned ? `trên ${vnd(planned)}` : 'chưa lập ngân sách'),
+      el('small', {}, planned ? t('trên {amount}', { amount: vnd(planned) }) : t('chưa lập ngân sách')),
     ]),
     planned ? el('div', { style: { marginTop: '10px' } }, [bar(percent, tone)]) : null,
     el('div.stat-row', { style: { marginTop: '12px' } }, [
-      el('small', {}, `Hôm nay: ${vnd(expenses.totals.today)}`),
-      el('small', {}, `${expenses.totals.count} khoản đã ghi`),
+      el('small', {}, t('Hôm nay: {amount}', { amount: vnd(expenses.totals.today) })),
+      el('small', {}, t('{count} khoản đã ghi', { count: expenses.totals.count })),
     ]),
   ]);
 }

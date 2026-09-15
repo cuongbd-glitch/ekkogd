@@ -6,6 +6,7 @@
  */
 import { api, el, guard, mount, renderText } from '/shared/client.js';
 import { celebrateRewards, closeSheet, sheet } from './ui.js';
+import { t } from './i18n.js';
 
 const OPENERS = [
   'Streak của tôi thế nào?',
@@ -16,8 +17,11 @@ const OPENERS = [
 
 export async function openBot(ctx) {
   const chat = el('div.chat');
-  const input = el('input.input', { placeholder: 'Hỏi mình, hoặc ghi "cà phê 35k"', 'aria-label': 'Tin nhắn' });
-  const sendButton = el('button.btn', { style: { width: '52px', padding: '0' }, 'aria-label': 'Gửi' }, '↑');
+  const input = el('input.input', {
+    placeholder: t('Hỏi mình, hoặc ghi "cà phê 35k"'),
+    'aria-label': t('Tin nhắn'),
+  });
+  const sendButton = el('button.btn', { style: { width: '52px', padding: '0' }, 'aria-label': t('Gửi') }, '↑');
 
   const scroller = el('div.sheet__body', { style: { flex: '1' } }, [chat]);
   const toBottom = () => { scroller.scrollTop = scroller.scrollHeight; };
@@ -30,7 +34,7 @@ export async function openBot(ctx) {
     const node = el(`div.msg.msg--${role}`, { html: renderText(text) });
     if (source === 'quick' && role === 'user') {
       node.classList.add('msg--quick');
-      node.append(el('span.msg__tag', {}, '⚡ ghi nhanh'));
+      node.append(el('span.msg__tag', {}, `⚡ ${t('ghi nhanh')}`));
     }
     chat.append(node);
 
@@ -52,7 +56,7 @@ export async function openBot(ctx) {
     chat.append(typing);
     toBottom();
 
-    const result = await guard(() => api.post('/api/bot/message', { text: message }), 'Ekko bot chưa trả lời được');
+    const result = await guard(() => api.post('/api/bot/message', { text: message }), t('Ekko bot chưa trả lời được'));
     typing.remove();
     if (!result) return;
 
@@ -61,7 +65,7 @@ export async function openBot(ctx) {
     // Logging an expense through chat still earns the daily reward.
     if (result.reply.rewards) {
       await ctx.refreshWorld();
-      await celebrateRewards(result.reply.rewards, { title: 'Đã ghi vào sổ' });
+      await celebrateRewards(result.reply.rewards, { title: t('Đã ghi vào sổ') });
     }
   }
 
@@ -71,7 +75,7 @@ export async function openBot(ctx) {
   });
 
   const panel = sheet({
-    title: 'Ekko bot',
+    title: t('Ekko bot'),
     body: [],
   });
 
@@ -81,11 +85,11 @@ export async function openBot(ctx) {
   panel.style.height = '82%';   // của màn hình điện thoại, không phải của viewport
   mount(panel, head, scroller, el('div.chat__composer', {}, [input, sendButton]));
 
-  const history = await guard(() => api.get('/api/bot/history?limit=30'), 'Không tải được lịch sử trò chuyện');
+  const history = await guard(() => api.get('/api/bot/history?limit=30'), t('Không tải được lịch sử trò chuyện'));
 
   if (!history?.messages?.length) {
-    push('bot', 'Chào bạn, mình là **Ekko bot**. Mình giải thích các bài học, cho bạn biết streak và chi tiêu của mình, và ghi chi tiêu giúp bạn chỉ bằng một câu nhắn.');
-    chat.append(suggestionRow(OPENERS, send));
+    push('bot', t('Chào bạn, mình là **Ekko bot**. Mình giải thích các bài học, cho bạn biết streak và chi tiêu của mình, và ghi chi tiêu giúp bạn chỉ bằng một câu nhắn.'));
+    chat.append(suggestionRow(OPENERS.map((q) => t(q)), send));
   } else {
     for (const message of history.messages) {
       push(message.role, message.text, message.meta, message.source);

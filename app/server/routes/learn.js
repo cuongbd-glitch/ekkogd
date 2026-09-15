@@ -248,7 +248,7 @@ learnRouter.get('/api/learn/lessons/:id', ({ user, params }) => {
   );
   if (!lesson) throw notFound('Không tìm thấy bài học này');
   if (lesson.unlock_level > currentLevelOrder(user.id)) {
-    throw bad(`Bài học này mở khoá ở cấp độ ${lesson.unlock_level}`);
+    throw bad('Bài học này chưa mở khoá ở cấp độ hiện tại của bạn.');
   }
   requireInOrder(user.id, lesson.id);
 
